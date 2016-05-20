@@ -1,4 +1,4 @@
-(function() {
+(function(angular) {
   'use strict';
 
   angular
@@ -6,7 +6,7 @@
     .run(runBlock);
 
   /** @ngInject */
-  function runBlock($log,mqttSocket) {
+  function runBlock($log,mqttSocket,Datasource) {
 
     $log.debug('runBlock end');
     
@@ -18,6 +18,13 @@
     });
     mqttSocket.connect("test.mosquitto.org",8080,"mqtt","toto");
     
+    var ds=new Datasource();
+    ds.instance={
+        onNameChanged:function(oldValue,newValue){
+            $log.log('datasource name changed to:'+newValue);
+        }
+    };
+    ds.name="OpenWeather Datasource";
   }
 
-})();
+})(angular);

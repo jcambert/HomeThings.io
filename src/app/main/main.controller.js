@@ -1,4 +1,4 @@
-(function() {
+(function(angular) {
   'use strict';
 
   angular
@@ -6,9 +6,9 @@
     .controller('MainController', MainController);
 
   /** @ngInject */
-  function MainController($timeout, webDevTec, toastr) {
-    var vm = this;
-
+  function MainController($scope,$timeout, webDevTec, toastr) {
+    //var vm = this;
+    var vm = $scope;
     vm.awesomeThings = [];
     vm.classAnimation = '';
     vm.creationDate = 1463670759279;
@@ -36,4 +36,4 @@
       });
     }
   }
-})();
+})(angular);

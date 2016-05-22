@@ -1,4 +1,4 @@
-(function() {
+(function(angular) {
   'use strict';
 
   angular
@@ -17,7 +17,7 @@
     toastrConfig.preventDuplicates = true;
     toastrConfig.progressBar = true;
     
-   
+   console.log('config from config');
   }
 
-})();
+})(angular);

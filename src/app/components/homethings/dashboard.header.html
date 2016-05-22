@@ -1,0 +1,42 @@
+<header id="main-header"  style="position:absolute; display: block;left:0px; top: 0px;" class="slideable">
+    <div id="admin-bar">
+        <div id="admin-menu">
+            <div id="board-tools">
+                <h1 id="board-logo" class="title bordered">HomeThings</h1>
+                <div id="board-actions">
+                    <ul class="board-toolbar vertical">
+                        <li ng-click="loadDashboardFromLocalFile"><i id="full-screen-icon" class="icon-folder-open icon-white"></i><label id="full-screen">Load Dashboard</label></li>
+                        <li><i class="icon-download-alt icon-white"></i>
+                            <label ng-click="saveDashboardClicked()">Save Dashboard</label>
+                            <label style="display: none;" ng-click="saveDashboard('pretty')">[Pretty]</label>
+                            <label style="display: none;" ng-click="saveDashboard('minified')">[Minified]</label>
+                        </li>
+                        <li id="add-pane" ng-click="addPane()"><i class="icon-plus icon-white"></i><label>Add Pane</label></li>
+                    </ul>
+                </div>
+            </div>
+            <div id="datasources">
+                <h2 class="title">DATASOURCES</h2>
+
+                <div class="datasource-list-container">
+                    <table class="table table-condensed sub-table" id="datasources-list" data-bind="if: datasources().length"></table>
+                </div>
+                <span class="text-button table-operation" ng-click="addDatasource()">ADD</span>
+            </div>
+        </div>
+    </div>
+    <!--
+	<div id="column-tools" class="responsive-column-width" style="max-width: 963px; display: block; width: 960px;">
+		<ul class="board-toolbar left-columns">
+			<li class="column-tool add min" data-bind="click: addGridColumnLeft"><span class="column-icon right"></span><i class="icon-arrow-left icon-white"></i></li>
+			<li class="column-tool sub min" data-bind="click: subGridColumnLeft"><span class="column-icon left"></span><i class="icon-arrow-right icon-white"></i></li>
+		</ul>
+		<ul class="board-toolbar right-columns">
+			<li class="column-tool sub min" data-bind="click: subGridColumnRight"><span class="column-icon right"></span><i class="icon-arrow-left icon-white"></i></li>
+			<li class="column-tool add min" data-bind="click: addGridColumnRight"><span class="column-icon left"></span><i class="icon-arrow-right icon-white"></i></li>
+		</ul>
+	</div>-->
+    <div id="toggle-header" slide-toggle="#main-header"  expanded="true"  toggle-value="false">
+        <i id="toggle-header-icon" class="fa fa-chevron-up" aria-hidden="true"></i>
+	</div>
+</header>

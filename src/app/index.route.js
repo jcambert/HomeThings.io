@@ -1,4 +1,4 @@
-(function() {
+(function(angular) {
   'use strict';
 
   angular
@@ -12,10 +12,10 @@
         url: '/',
         templateUrl: 'app/main/main.html',
         controller: 'MainController',
-        controllerAs: 'main'
+        //controllerAs: 'main'
       });
 
     $urlRouterProvider.otherwise('/');
   }
 
-})();
+})(angular);

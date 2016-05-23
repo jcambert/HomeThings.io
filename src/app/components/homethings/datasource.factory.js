@@ -3,8 +3,9 @@
   angular
   .module('homeThingsIo')
   .constant('_',_)
+  .constant('PluginState',{CREATED:0,INSTANCIED:1,PAUSED:2,RUNNING:3})
   .controller('dashboardController',function(){})
-  .directive('dashboardUi',function($log, $uibModal,Dashboard,datasourcePlugins){
+  .directive('dashboardUi',function($log, $uibModal,Dashboard,Datasource,datasourcePlugins){
       return{
           restrict:'E',
           transclude:true,
@@ -15,7 +16,7 @@
               var self=$scope;
               self.dashboard = new Dashboard();
               
-              self.datasources={}
+              self.datasources=[];
               self.$on("#main-header_toggle",function(event,data){
                  
                  self.dashboard.allowEdit=!data.toggle; 
@@ -34,8 +35,10 @@
                     });
 
                   modalInstance.result.then(function (selectedItem) {
-                    $scope.selected = selectedItem;
-                    alert(selectedItem.display_name);
+                    var datasource=new Datasource(selectedItem);
+                    $log.log(datasource);
+                    self.datasources.push(datasource);
+                    alert(selectedItem.name);
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
@@ -49,47 +52,71 @@
       }
   })
   
-  .controller('AddDatasourceModalController',function($scope,$uibModalInstance,datasources){
+  .controller('AddDatasourceModalController',function($log,$scope,$uibModalInstance,datasources,PluginState){
      var self=$scope;
      self.datasources=datasources;
      self.selected={
          item:{}
      };
-     self.plugin={};
+     
      self.ok = function () {
-        $uibModalInstance.close($scope.selected.item);
+        $uibModalInstance.close(self.plugin);
     };
 
     self.cancel = function () {
         $uibModalInstance.dismiss('cancel');
     };
-    self.addArray = function(name){
-      alert(name);  
+    self.addRow = function(name){
+      var setting=_.find(self.selected.item.settings,function(setting){return setting.name==name});
+      if(setting){
+          var s={};
+          s=createDefaultSettings(setting.settings);
+          self.plugin[name].push(s);
+      }else
+        self.plugin[name].push({});
+        
     };
-    function createPlugin(){
-        self.plugin={};
-       _.forEach(self.item.settings,function(setting){
+    
+   self.deleteRow = function(name,index){
+       self.plugin[name].splice(index,1);
+   }
+    self.createPlugin = function(){
+        self.plugin=createDefaultSettings(self.selected.item.settings);
+        self.plugin.state=PluginState.CREATED;
+    };
+    
+    
+    function createDefaultSettings(settings){
+        $log.log('createDefaultSettings');
+        var dest={'name':'','type':self.selected.item.type_name};
+        
+       _.forEach(settings,function(setting){
            switch (setting.type) {
                case 'integer':
-                   self.plugin[setting.name]= setting.default || 0;
+                   dest[setting.name]= setting.default || 0;
                    break;
                case 'text':
-                    self.plugin[setting.name]= setting.default || "";
+                    dest[setting.name]= setting.default || "";
                     break;
                case 'boolean':
-                    self.plugin[setting.name]=setting.default ||false;
+                    dest[setting.name]=setting.default ||false;
                     break;
                case 'option':   
-                    self.plugin[setting.name]= setting.default || "";
+                    dest[setting.name]= setting.default || "";
                     break;
                case 'array':
-                    self.plugin[setting.name]= [];
+                    dest[setting.name]= [];
                     break;
                default:
                    break;
            }
        });
+       $log.log(dest);
+       return dest;
     }
+    
+    
+     self.createPlugin();
   })
   
   .directive('dashboardHeader',function(){
@@ -188,6 +215,7 @@
           all:function(){return self.plugins;},
           $get:function(){
               return{
+                  add:function(datasource){self.plugins.push(datasource);},
                   all:function(){return self.plugins;},
                   get:function(name){return _.Find(self.plugins,function(plugin){return plugin.name==name;});}
               };
@@ -266,7 +294,7 @@
   
   
   /** DatasourceModel */
-  .factory('Datasource', function($log,$rootScope,propertyChanged,datasourcePlugins,_){
+  .factory('Datasource', function($log,$rootScope,propertyChanged/*,datasourcePlugins*/,_){
     function Datasource(data) {
         var self = this;
         
@@ -274,7 +302,7 @@
         self.name = "";
         self.latestData = {};
         self.settings = {};
-        self.type = {};
+        //self.type = {};
         self.last_updated = {}
         self.last_error = {};
         
@@ -283,7 +311,7 @@
         propertyChanged.setPropertyChanged('last_updated','onLastUpdated');
         propertyChanged.setPropertyChanged('last_error','OnLastError');
         
-        propertyChanged.setPropertyChanged('type',function(oldValue,newValue){
+        /*propertyChanged.setPropertyChanged('type',function(oldValue,newValue){
            self.disposeInstance();
            if( (newValue in datasourcePlugins.plugins) && _.isFunction(datasourcePlugins[newValue].newInstance)){
                var datasourceType = datasourcePlugins.plugins[newValue];
@@ -306,7 +334,7 @@
                     finishLoad();
                 }
            }
-        });
+        });*/
         
        
         

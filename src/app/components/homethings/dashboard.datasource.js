@@ -292,7 +292,8 @@ var json_plugin={
 			{
 				name: "url",
 				display_name: "URL",
-				type: "text"
+				type: "text",
+                placeholder:'The url of the json source'
 			},
 			{
 				name: "use_thingproxy",

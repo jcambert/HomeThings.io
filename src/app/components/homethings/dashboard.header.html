@@ -19,7 +19,29 @@
                 <h2 class="title">DATASOURCES</h2>
 
                 <div class="datasource-list-container">
-                    <table class="table table-condensed sub-table" id="datasources-list" data-bind="if: datasources().length"></table>
+                    <table class="table table-condensed sub-table" id="datasources-list" ng-if="datasources.length>0">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Last Updated</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="datasource in datasources">
+                            <td>
+                                <span class="text-button datasource-name" ng-click="modifyDatasource($index)" uib-tooltip="{{'Modify ' + datasource.name}}" >{{datasource.name}}</span>
+                            </td>
+                            <td>{{datasource.last_updated}}</td>
+                            <td>
+                                <ul class="board-toolbar">
+                                    <li ng-click="updateDatasourceData($index)" uib-tooltip="{{'Refresh ' + datasource.name }}"><i class="fa fa-refresh"></i></li>
+                                    <li ng-click="deleteDatasource($index)" uib-tooltip="{{'Delete ' + datasource.name }}"><i class="fa fa-trash-o"></i></li>
+                                </ul>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
                 <span class="text-button table-operation" ng-click="addDatasource()">ADD</span>
             </div>

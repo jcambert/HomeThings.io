@@ -79,7 +79,27 @@
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
+            };
+            
+            self.deleteDatasource = function(index){
+                var ds=self.datasources[index];
+                ds.dispose();
+                self.datasources.splice(index,1)
+            };
+            self.updateDatasourceData = function(index){
+                var ds=self.datasources[index];
+                ds.updateNow();
+            };
+            self.stopDatasourceData = function(index){
+                var ds=self.datasources[index];
+                ds.stop();
+            };
+            self.startDatasourceData = function(index){
+                var ds=self.datasources[index];
+                ds.start();
             }
+            
+            
           },
           link:function($scope,$element,attrs){
               
@@ -337,7 +357,7 @@
   
   
   /** DatasourceModel */
-  .factory('Datasource', function($log,$rootScope,propertyChanged,datasourcePlugins,_){
+  .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,datasourcePlugins,PluginState,_){
     function Datasource(data) {
         var self = this;
         
@@ -350,38 +370,10 @@
         self.last_error = {};
         
  
-        //propertyChanged.setPropertyChanged('name','onNameChanged');
-       // propertyChanged.setPropertyChanged('last_updated','onLastUpdated');
-       // propertyChanged.setPropertyChanged('last_error','OnLastError');
-        /*
-        propertyChanged.setPropertyChanged('type',function(oldValue,newValue){
-            $log.log('Datasource.type change to:');$log.log(newValue);
-           self.disposeInstance();
-           if( (newValue in datasourcePlugins.plugins) && _.isFunction(datasourcePlugins[newValue].newInstance)){
-               var datasourceType = datasourcePlugins.plugins[newValue];
-               function finishLoad()
-                {
-                    datasourceType.newInstance(self.settings(), function(instance)
-                    {
-
-                        self.instance = instance;
-                        instance.updateNow();
-
-                    }, self.updateCallback);
-                }
-                if(datasourceType.external_scripts)
-                {
-                    head.js(datasourceType.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
-                }
-                else
-                {
-                    finishLoad();
-                }
-           }
-        });*/
         self.setType = function (datasource){
             if(datasource == undefined)return;
-                $log.log('Datasource.type change to:');$log.log(datasource);
+            type=datasource;
+            $log.log('Datasource.type change to:');$log.log(datasource);
             self.disposeInstance();
             if(   datasourcePlugins.has(datasource) && _.isFunction(datasource.newInstance)){
                 $log.log('try instantiate');
@@ -391,10 +383,11 @@
                         datasourceType.newInstance(self.settings, function(instance)
                         {
 
-                            self.instance = instance;
-                            instance.updateNow();
+                           self.instance = instance;
+                          //  instance.updateNow();
+                          self.settings.state = PluginState.CREATED;
 
-                        }, self.updateCallback);
+                        }, self.updateCallback,$interval);
                     }
                 if(datasourceType.external_scripts)
                 {
@@ -414,61 +407,87 @@
             {
                 if(_.isFunction(self.instance.onDispose))
                 {
-                    self.datasourceInstance.onDispose();
+                    self.instance.onDispose();
                 }
 
                 self.instance = undefined;
             }
-        }
+        };
+        
+        self.updateCallback=function(newData){
+            self.latestData=newData;
+            var now = new Date();
+            self.last_updated=now.toLocaleTimeString();
+            $rootScope.$broadcast('DATASOURCE.UPDATE',{object:self,data:newData});
+        };
+        
+        self.start = function(){
+            if(_.isUndefined(self.instance))return;
+            if(_.isFunction(self.instance.start)){
+                self.instance.start();
+                self.settings.state = PluginState.RUNNING;
+            }
+        };
+        
+        self.stop = function(){
+            if(_.isUndefined(self.instance))return;
+            if(_.isFunction(self.instance.stop)){
+                self.instance.stop();
+                self.settings.state = PluginState.PAUSED;
+            }
+        };
         
         if (data) {
             this.setData(data);
         }
-    }
+    };
+
+    
     Datasource.prototype = {
+        
         setData: function(data) {
             angular.extend(this.settings, data);
         },
-        updateCallback:function(newData){
+      /*  updateCallback:function(newData){
             //theFreeboardModel.processDatasourceUpdate(self, newData);
             
-            $log.log(newData);
-            self.latestData=newData;
+            $log.log(newData);console.dir(this);
+            this.latestData=newData;
 
             var now = new Date();
-            self.last_updated=now.toLocaleTimeString();
-            $rootScope.$broadcast('DATASOURCE.UPDATE',{object:self,data:newData});
+            this.last_updated=now.toLocaleTimeString();
+            $rootScope.$broadcast('DATASOURCE.UPDATE',{object:this,data:newData});
            // $rootScope.$digest();
-        },
+        },*/
         serialize : function()
         {
             return {
-                name    : self.name,
-                type    : self.type,
-                settings: self.settings
+                name    : this.name,
+                type    : this.type,
+                settings: this.settings
             };
         },
         deserialize : function(object)
         {
-            self.settings=object.settings;
-            self.name=object.name;
-            self.type=object.type;
+            this.settings=object.settings;
+            this.name=object.name;
+            this.type=object.type;
         },
         getDataRepresentation : function(dataPath)
         {
             var valueFunction = new Function("data", "return " + dataPath + ";");
-            return valueFunction.call(undefined, self.latestData());
+            return valueFunction.call(undefined, this.latestData());
         },
         updateNow : function()
         {
-            if(!_.isUndefined(self.instance) && _.isFunction(self.instance.updateNow))
+            if(!_.isUndefined(this.instance) && _.isFunction(this.instance.updateNow))
             {
-                self.instance.updateNow();
+                this.instance.updateNow();
             }
         },
         dispose : function()
         {
-            self.disposeInstance();
+            this.disposeInstance();
         }
     };
     return Datasource;

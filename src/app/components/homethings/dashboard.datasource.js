@@ -1,5 +1,21 @@
 (function (angular) {
-
+var Timer = function($interval){
+    var self=this;
+    self._timer = null;
+    self.$interval = $interval;
+}
+Timer.prototype = {
+    start: function(time,callback){
+        this._timer = this.$interval(function(){
+            callback();
+        },time);
+    },
+    stop:function(){
+        if (angular.isDefined(this._timer)) {
+            this.$interval.cancel(this._timer);
+        }
+    }
+};
 angular.module('homeThingsIo')
 .config(
     function(datasourcePluginsProvider){
@@ -9,24 +25,22 @@ angular.module('homeThingsIo')
         datasourcePluginsProvider.add(weather_plugin);
         datasourcePluginsProvider.add(json_plugin);
         console.dir(datasourcePluginsProvider.all());
-    });
+    })  
+;
 
-var ClockDatasource = function (settings, updateCallback) {
+var ClockDatasource = function (settings, updateCallback,$interval) {
 		var self = this;
 		var currentSettings = settings;
-		var timer;
-       // var toto=angular.injector(['homeThingsIo']).get('$timeout');
-       // console.dir(toto);
-		function stopTimer() {
-			if (timer) {
-				clearTimeout(timer);
-				timer = null;
-			}
+		self.timer=null;
+       
+		this.stop = function() {
+            self.timer.stop();
 		}
 
-		function updateTimer() {
-			stopTimer();
-			timer = setInterval(self.updateNow, currentSettings.refresh * 1000);
+		this.start = function () {
+			self.stop();
+			//timer =  setInterval(self.updateNow, currentSettings.refresh * 1000);
+            self.timer.start(currentSettings.refresh * 1000,self.updateNow);
 		}
 
 		this.updateNow = function () {
@@ -44,15 +58,16 @@ var ClockDatasource = function (settings, updateCallback) {
 		}
 
 		this.onDispose = function () {
-			stopTimer();
+			self.stop();
 		}
 
 		this.onSettingsChanged = function (newSettings) {
 			currentSettings = newSettings;
-			updateTimer();
+			self.start();
 		}
-
-		updateTimer();
+        self.timer=new Timer($interval);
+        //console.dir(self.timer);
+		//start();
 	};
 var copy_clock={
 		"type_name": "clock",
@@ -67,8 +82,8 @@ var copy_clock={
                 "placeholder":"Refresh time in seconds"
 			}
 		],
-		newInstance: function (settings, newInstanceCallback, updateCallback) {
-			newInstanceCallback(new ClockDatasource(settings, updateCallback));
+		newInstance: function (settings, newInstanceCallback, updateCallback,$interval) {
+			newInstanceCallback(new ClockDatasource(settings, updateCallback,$interval));
 		}
 	};
 var clock={
@@ -83,8 +98,8 @@ var clock={
             "default_value": 1
         }
     ],
-    newInstance: function (settings, newInstanceCallback, updateCallback) {
-        newInstanceCallback(new ClockDatasource(settings, updateCallback));
+    newInstance: function (settings, newInstanceCallback, updateCallback,$interval) {
+        newInstanceCallback(new ClockDatasource(settings, updateCallback,$interval));
     }
 };
 

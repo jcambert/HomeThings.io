@@ -35,7 +35,9 @@
                             <td>{{datasource.last_updated}}</td>
                             <td>
                                 <ul class="board-toolbar">
-                                    <li ng-click="updateDatasourceData($index)" uib-tooltip="{{'Refresh ' + datasource.settings.name }}"><i class="fa fa-refresh"></i></li>
+                                    <li ng-click="stopDatasourceData($index)" uib-tooltip="{{'Stop ' + datasource.settings.name }}" ng-if="datasource.settings.state == 3"><i class="fa fa-stop"></i></li>
+                                    <li ng-click="startDatasourceData($index)" uib-tooltip="{{'Start ' + datasource.settings.name }}" ng-if="datasource.settings.state == 0 || datasource.settings.state == 2 "><i class="fa fa-play"></i></li>
+                                    <li ng-click="updateDatasourceData($index)" uib-tooltip="{{'Refresh ' + datasource.settings.name }}" ng-if="datasource.settings.state == 3"><i class="fa fa-refresh"></i></li>
                                     <li ng-click="deleteDatasource($index)" uib-tooltip="{{'Delete ' + datasource.settings.name }}"><i class="fa fa-trash-o"></i></li>
                                 </ul>
                             </td>

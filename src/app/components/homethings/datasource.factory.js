@@ -4,15 +4,16 @@
   .module('homeThingsIo')
   .constant('_',_)
   .constant('PluginState',{CREATED:0,INSTANCIED:1,PAUSED:2,RUNNING:3})
+  .constant('FormState',{ADD:0,MODIFY:1})
   .controller('dashboardController',function(){})
-  .directive('dashboardUi',function($log, $uibModal,Dashboard,Datasource,datasourcePlugins){
+  .directive('dashboardUi',function($log, $uibModal,Dashboard,Datasource,datasourcePlugins,FormState){
       return{
           restrict:'E',
           transclude:true,
           replace:true,
           template:'<div ng-transclude></div>',
          
-          controller: function($scope){
+          controller: function($scope,$rootScope){
               var self=$scope;
               self.dashboard = new Dashboard();
               
@@ -21,6 +22,9 @@
                  
                  self.dashboard.allowEdit=!data.toggle; 
               });
+              
+              //$rootScope.$on('DATASOURCE.UPDATE',function(){$scope.$apply();});
+              
               $log.log('datasources plugins:');$log.log(datasourcePlugins.all());
               self.addDatasource = function(){
                  var modalInstance = $uibModal.open({
@@ -29,13 +33,19 @@
                     controller: 'AddDatasourceModalController',
                     size: 'lg',
                     resolve: {
-                       datasources:function(){ return datasourcePlugins.all();}
-                       
+                        options:function() {
+                            return{
+                                mode: FormState.ADD,
+                                datasources: datasourcePlugins.all()
+                                }
+                            }
                         }
                     });
 
                   modalInstance.result.then(function (selectedItem) {
                     var datasource=new Datasource(selectedItem);
+                    datasource.setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
+                    
                     $log.log(datasource);
                     self.datasources.push(datasource);
                     alert(selectedItem.name);
@@ -44,7 +54,32 @@
                   });
 
               };
-              
+            self.modifyDatasource = function(index){
+                var ds=self.datasources[index];
+                var modalInstance = $uibModal.open({
+                    animation: true,
+                    templateUrl: 'app/components/homethings/addDatasource.html',
+                    controller: 'AddDatasourceModalController',
+                    size: 'lg',
+                    resolve: {
+                        options:function() {
+                            return{
+                                mode: FormState.MODIFY,
+                                datasource: ds
+                                }
+                            }
+                        }
+                    });
+
+
+                  modalInstance.result.then(function (selectedItem) {
+                    
+                    self.datasources[index]=new Datasource(selectedItem);
+                    self.datasources[index].type=_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name})
+                  }, function () {
+                    $log.info('Modal dismissed at: ' + new Date());
+                  });
+            }
           },
           link:function($scope,$element,attrs){
               
@@ -52,13 +87,20 @@
       }
   })
   
-  .controller('AddDatasourceModalController',function($log,$scope,$uibModalInstance,datasources,PluginState){
+   
+  .controller('AddDatasourceModalController',function($log,$scope,$uibModalInstance,PluginState,options){
      var self=$scope;
-     self.datasources=datasources;
+     self.mode=options.mode;
+     self.datasources=options.datasources;
+     self.datasource = options.datasource;
      self.selected={
          item:{}
      };
-     
+     if(self.mode=='modify'){
+        self.selected.item=self.datasource;
+        self.createPlugin;
+     }
+        
      self.ok = function () {
         $uibModalInstance.close(self.plugin);
     };
@@ -217,7 +259,8 @@
               return{
                   add:function(datasource){self.plugins.push(datasource);},
                   all:function(){return self.plugins;},
-                  get:function(name){return _.Find(self.plugins,function(plugin){return plugin.name==name;});}
+                  get:function(name){return _.find(self.plugins,function(plugin){return plugin.type_name==name;});},
+                  has:function(datasource){return _.find(self.plugins,function(plugin){return plugin.type_name==datasource.type_name;})!= undefined}
               };
           }
           
@@ -294,7 +337,7 @@
   
   
   /** DatasourceModel */
-  .factory('Datasource', function($log,$rootScope,propertyChanged/*,datasourcePlugins*/,_){
+  .factory('Datasource', function($log,$rootScope,propertyChanged,datasourcePlugins,_){
     function Datasource(data) {
         var self = this;
         
@@ -302,16 +345,17 @@
         self.name = "";
         self.latestData = {};
         self.settings = {};
-        //self.type = {};
-        self.last_updated = {}
+        var type = {};
+        self.last_updated = new Date().toLocaleTimeString();
         self.last_error = {};
         
  
-        propertyChanged.setPropertyChanged('name','onNameChanged');
-        propertyChanged.setPropertyChanged('last_updated','onLastUpdated');
-        propertyChanged.setPropertyChanged('last_error','OnLastError');
-        
-        /*propertyChanged.setPropertyChanged('type',function(oldValue,newValue){
+        //propertyChanged.setPropertyChanged('name','onNameChanged');
+       // propertyChanged.setPropertyChanged('last_updated','onLastUpdated');
+       // propertyChanged.setPropertyChanged('last_error','OnLastError');
+        /*
+        propertyChanged.setPropertyChanged('type',function(oldValue,newValue){
+            $log.log('Datasource.type change to:');$log.log(newValue);
            self.disposeInstance();
            if( (newValue in datasourcePlugins.plugins) && _.isFunction(datasourcePlugins[newValue].newInstance)){
                var datasourceType = datasourcePlugins.plugins[newValue];
@@ -335,7 +379,34 @@
                 }
            }
         });*/
-        
+        self.setType = function (datasource){
+            if(datasource == undefined)return;
+                $log.log('Datasource.type change to:');$log.log(datasource);
+            self.disposeInstance();
+            if(   datasourcePlugins.has(datasource) && _.isFunction(datasource.newInstance)){
+                $log.log('try instantiate');
+                var datasourceType =datasource;
+                function finishLoad()
+                    {
+                        datasourceType.newInstance(self.settings, function(instance)
+                        {
+
+                            self.instance = instance;
+                            instance.updateNow();
+
+                        }, self.updateCallback);
+                    }
+                if(datasourceType.external_scripts)
+                {
+                    head.js(datasourceType.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
+                }
+                else
+                {
+                    finishLoad();
+                }
+            }
+            
+        }
        
         
         self.disposeInstance = function(){
@@ -356,16 +427,18 @@
     }
     Datasource.prototype = {
         setData: function(data) {
-            angular.extend(this, data);
+            angular.extend(this.settings, data);
         },
         updateCallback:function(newData){
             //theFreeboardModel.processDatasourceUpdate(self, newData);
-            $rootScope.$broadcast('DATASOURCE.UPDATE',{object:self,data:newData});
-
-            self.latestData(newData);
+            
+            $log.log(newData);
+            self.latestData=newData;
 
             var now = new Date();
-            self.last_updated(now.toLocaleTimeString());
+            self.last_updated=now.toLocaleTimeString();
+            $rootScope.$broadcast('DATASOURCE.UPDATE',{object:self,data:newData});
+           // $rootScope.$digest();
         },
         serialize : function()
         {

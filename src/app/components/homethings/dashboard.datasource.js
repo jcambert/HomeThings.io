@@ -15,7 +15,8 @@ var ClockDatasource = function (settings, updateCallback) {
 		var self = this;
 		var currentSettings = settings;
 		var timer;
-
+       // var toto=angular.injector(['homeThingsIo']).get('$timeout');
+       // console.dir(toto);
 		function stopTimer() {
 			if (timer) {
 				clearTimeout(timer);

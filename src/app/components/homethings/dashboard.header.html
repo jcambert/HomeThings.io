@@ -30,13 +30,13 @@
                         <tbody>
                         <tr ng-repeat="datasource in datasources">
                             <td>
-                                <span class="text-button datasource-name" ng-click="modifyDatasource($index)" uib-tooltip="{{'Modify ' + datasource.name}}" >{{datasource.name}}</span>
+                                <span class="text-button datasource-name" ng-click="modifyDatasource($index)" uib-tooltip="{{'Modify ' + datasource.settings.name}}" >{{datasource.settings.name}}</span>
                             </td>
                             <td>{{datasource.last_updated}}</td>
                             <td>
                                 <ul class="board-toolbar">
-                                    <li ng-click="updateDatasourceData($index)" uib-tooltip="{{'Refresh ' + datasource.name }}"><i class="fa fa-refresh"></i></li>
-                                    <li ng-click="deleteDatasource($index)" uib-tooltip="{{'Delete ' + datasource.name }}"><i class="fa fa-trash-o"></i></li>
+                                    <li ng-click="updateDatasourceData($index)" uib-tooltip="{{'Refresh ' + datasource.settings.name }}"><i class="fa fa-refresh"></i></li>
+                                    <li ng-click="deleteDatasource($index)" uib-tooltip="{{'Delete ' + datasource.settings.name }}"><i class="fa fa-trash-o"></i></li>
                                 </ul>
                             </td>
                         </tr>

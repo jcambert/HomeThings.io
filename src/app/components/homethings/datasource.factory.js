@@ -6,7 +6,7 @@
   .constant('PluginState',{CREATED:0,INSTANCIED:1,PAUSED:2,RUNNING:3})
   .constant('FormState',{ADD:0,MODIFY:1})
   .controller('dashboardController',function(){})
-  .directive('dashboardUi',function($log, $uibModal,Dashboard,Datasource,datasourcePlugins,FormState){
+  .directive('dashboardUi',function($log, $uibModal,Dashboard,Datasource,Pane,datasourcePlugins,widgetPlugins,FormState){
       return{
           restrict:'E',
           transclude:true,
@@ -17,26 +17,29 @@
               var self=$scope;
               self.dashboard = new Dashboard();
               
-              self.datasources=[];
+              self.datasources = [];
+              
+              self.panes = [];
+              
+           
+              
               self.$on("#main-header_toggle",function(event,data){
                  
                  self.dashboard.allowEdit=!data.toggle; 
               });
               
-              //$rootScope.$on('DATASOURCE.UPDATE',function(){$scope.$apply();});
               
               $log.log('datasources plugins:');$log.log(datasourcePlugins.all());
               self.addDatasource = function(){
                  var modalInstance = $uibModal.open({
                     animation: true,
-                    templateUrl: 'app/components/homethings/addDatasource.html',
+                    templateUrl: 'app/components/homethings/datasource.html',
                     controller: 'AddDatasourceModalController',
                     size: 'lg',
                     resolve: {
                         options:function() {
                             return{
-                                mode: FormState.ADD,
-                                datasources: datasourcePlugins.all()
+                                mode:FormState.ADD
                                 }
                             }
                         }
@@ -45,10 +48,7 @@
                   modalInstance.result.then(function (selectedItem) {
                     var datasource=new Datasource(selectedItem);
                     datasource.setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
-                    
-                    $log.log(datasource);
                     self.datasources.push(datasource);
-                    alert(selectedItem.name);
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
@@ -56,16 +56,17 @@
               };
             self.modifyDatasource = function(index){
                 var ds=self.datasources[index];
+                $log.log(ds);$log.log(index);
                 var modalInstance = $uibModal.open({
                     animation: true,
-                    templateUrl: 'app/components/homethings/addDatasource.html',
+                    templateUrl: 'app/components/homethings/datasource.html',
                     controller: 'AddDatasourceModalController',
                     size: 'lg',
                     resolve: {
                         options:function() {
                             return{
-                                mode: FormState.MODIFY,
-                                datasource: ds
+                                datasource: ds,
+                                mode: FormState.MODIFY
                                 }
                             }
                         }
@@ -73,9 +74,9 @@
 
 
                   modalInstance.result.then(function (selectedItem) {
-                    
+                    $log.log(selectedItem);
                     self.datasources[index]=new Datasource(selectedItem);
-                    self.datasources[index].type=_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name})
+                    self.datasources[index].setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
@@ -97,9 +98,24 @@
             self.startDatasourceData = function(index){
                 var ds=self.datasources[index];
                 ds.start();
+            };
+            
+            self.addPane = function(){
+                self.panes.push(new Pane({x:0,y:0,width:2,height:1}));
+                $log.log(self.panes);
+            };
+           
+            self.removePane = function(index){
+                self.panes.splice(index,1);
             }
             
-            
+             self.addPane();
+           _.forEach(widgetPlugins.all(),function(widget){
+               widget.newInstance({},function(instance){
+                   self.panes[0].addWidget(instance); 
+               });
+              
+           })
           },
           link:function($scope,$element,attrs){
               
@@ -108,19 +124,22 @@
   })
   
    
-  .controller('AddDatasourceModalController',function($log,$scope,$uibModalInstance,PluginState,options){
+  .controller('AddDatasourceModalController',function($log,$scope,$uibModalInstance,datasourcePlugins,FormState,PluginState,options){
      var self=$scope;
-     self.mode=options.mode;
-     self.datasources=options.datasources;
+     self.datasources=datasourcePlugins.all();
      self.datasource = options.datasource;
+     
+     self.mode = options.mode;
      self.selected={
          item:{}
      };
-     if(self.mode=='modify'){
-        self.selected.item=self.datasource;
-        self.createPlugin;
+     if(self.mode == FormState.MODIFY){
+        self.selected.item = datasourcePlugins.get(self.datasource.settings.type);
+        $log.log(self.datasource);
+        $log.log(self.selected.item);
+        self.plugin=angular.copy(self.datasource.settings);
      }
-        
+     
      self.ok = function () {
         $uibModalInstance.close(self.plugin);
     };
@@ -143,6 +162,7 @@
        self.plugin[name].splice(index,1);
    }
     self.createPlugin = function(){
+        if(self.mode == FormState.MODIFY) return;
         self.plugin=createDefaultSettings(self.selected.item.settings);
         self.plugin.state=PluginState.CREATED;
     };
@@ -181,6 +201,18 @@
      self.createPlugin();
   })
   
+  .controller('modifyDatasourceController',function($log,$scope,$uibModalInstance,PluginState,options){
+    var self = this;
+    self.datasource = options.datasource;
+    self.ok = function () {
+        $uibModalInstance.close(self.plugin);
+    };
+
+    self.cancel = function () {
+        $uibModalInstance.dismiss('cancel');
+    };
+  })
+  
   .directive('dashboardHeader',function(){
       return{
           restrict:'E',
@@ -193,20 +225,22 @@
       return{
           restrict:'E',
           replace:true,
-          template:'<div id="toggle-header" slide-toggle="#main-header" toggle-value="false" expanded="false" ng-show="dashboard.allowEdit==false"><i id="toggle-header-icon" class="fa fa-cogs" aria-hidden="true"></i></div>'
+         // template:'<div id="toggle-header" slide-toggle="#main-header" toggle-value="false" expanded="false" ng-show="dashboard.allowEdit==false"><i id="toggle-header-icon" class="fa fa-cogs" aria-hidden="true"></i></div>'
+          template:'<div id="toggle-header" ng-show="!dashboard.allowEdit" ng-click="dashboard.allowEdit=true"><i id="toggle-header-icon" class="fa fa-cogs" aria-hidden="true"></i></div>'
           
       }
   })
-  
+
  .directive('dashboardContent',function(){
     return{
         restrict:'E',
         replace:true,
         transclude:true,
-        template:'<span ng-transclude></span>'
+        template:'<div ng-transclude></div>'
         
     }
   })
+  /*
   .directive('slideable', function () {
     return {
         restrict:'C',
@@ -228,7 +262,7 @@
                 });
             };
         }
-    };
+    }; 
 })
 .directive('slideToggle', function() {
     return {
@@ -259,8 +293,95 @@
             });
         }
     }
-})
+})*/
 
+.directive('ngSlideDown', 
+    function ($timeout) {
+      var getTemplate, link;
+      getTemplate = function (tElement, tAttrs) {
+        if (tAttrs.lazyRender !== void 0) {
+          return '<div ng-if=\'lazyRender\' ng-transclude></div>';
+        } else {
+          return '<div ng-transclude></div>';
+        }
+      };
+      link = function (scope, element, attrs, ctrl, transclude) {
+        var closePromise, duration, elementScope, emitOnClose, getHeight, hide, lazyRender, onClose, show;
+        duration = attrs.duration || 1;
+        elementScope = element.scope();
+        emitOnClose = attrs.emitOnClose;
+        onClose = attrs.onClose;
+        lazyRender = attrs.lazyRender !== void 0;
+        if (lazyRender) {
+          scope.lazyRender = scope.expanded;
+        }
+        closePromise = null;
+        element.css({
+          overflow: 'hidden',
+          transitionProperty: 'height',
+          transitionDuration: '' + duration + 's',
+          transitionTimingFunction: 'ease-in-out'
+        });
+        getHeight = function (passedScope) {
+          var c, children, height, _i, _len;
+          height = 0;
+          children = element.children();
+          for (_i = 0, _len = children.length; _i < _len; _i++) {
+            c = children[_i];
+            height += c.clientHeight;
+          }
+          return '' + height + 'px';
+        };
+        show = function () {
+          if (closePromise) {
+            $timeout.cancel(closePromise);
+          }
+          if (lazyRender) {
+            scope.lazyRender = true;
+          }
+          return element.css('height', getHeight());
+        };
+        hide = function () {
+          element.css('height', '0px');
+          if (emitOnClose || onClose || lazyRender) {
+            return closePromise = $timeout(function () {
+              if (emitOnClose) {
+                scope.$emit(emitOnClose, {});
+              }
+              if (onClose) {
+                elementScope.$eval(onClose);
+              }
+              if (lazyRender) {
+                return scope.lazyRender = false;
+              }
+            }, duration * 1000);
+          }
+        };
+        scope.$watch('expanded', function (value, oldValue) {
+          if (value) {
+            return $timeout(show);
+          } else {
+            return $timeout(hide);
+          }
+        });
+        return scope.$watch(getHeight, function (value, oldValue) {
+          if (scope.expanded && value !== oldValue) {
+            return $timeout(show);
+          }
+        });
+      };
+      return {
+        restrict: 'A',
+        scope: { expanded: '=ngSlideDown' },
+        transclude: true,
+        link: link,
+       /* template: function (tElement, tAttrs) {
+          return getTemplate(tElement, tAttrs);
+        }*/
+      };
+    }
+  )
+  
 .directive('datasourceTypeSelect',function(){
     return {
         restrict:'E',
@@ -269,25 +390,48 @@
     }
 })
 
-  .provider('datasourcePlugins',function(_){
+.directive('pane',function(){
+    return{
+        restrict:'E',
+        replace:true,
+        templateUrl:'app/components/homethings/pane.html'
+    }
+})
+.provider('datasourcePlugins',function(_){
+    var self=this;
+    self.plugins=[];
+    return{
+        add:function(datasource){self.plugins.push(datasource);},
+        all:function(){return self.plugins;},
+        $get:function(){
+            return{
+                add:function(datasource){self.plugins.push(datasource);},
+                all:function(){return self.plugins;},
+                get:function(name){return _.find(self.plugins,function(plugin){return plugin.type_name==name;});},
+                has:function(datasource){return _.find(self.plugins,function(plugin){return plugin.type_name==datasource.type_name;})!= undefined}
+            };
+        }  
+    };    
+  })
+.provider('widgetPlugins',function(_){
       var self=this;
       self.plugins=[];
       return{
-          add:function(datasource){self.plugins.push(datasource);},
+          add:function(widget){self.plugins.push(widget);},
           all:function(){return self.plugins;},
           $get:function(){
               return{
-                  add:function(datasource){self.plugins.push(datasource);},
+                  add:function(widget){self.plugins.push(widget);},
                   all:function(){return self.plugins;},
                   get:function(name){return _.find(self.plugins,function(plugin){return plugin.type_name==name;});},
-                  has:function(datasource){return _.find(self.plugins,function(plugin){return plugin.type_name==datasource.type_name;})!= undefined}
+                  has:function(widget){return _.find(self.plugins,function(plugin){return plugin.type_name==widget.type_name;})!= undefined}
               };
           }
           
       };
       
   })
-  
+   
   .service('propertyChanged',function($window,$log,_){
       var self=this;
       
@@ -358,7 +502,7 @@
   
   /** DatasourceModel */
   .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,datasourcePlugins,PluginState,_){
-    function Datasource(data) {
+    function Datasource(settings) {
         var self = this;
         
         self.instance = undefined;
@@ -386,6 +530,9 @@
                            self.instance = instance;
                           //  instance.updateNow();
                           self.settings.state = PluginState.CREATED;
+                          $log.log(datasourceType.display_name +' was created');
+                          
+                          self.start();
 
                         }, self.updateCallback,$interval);
                     }
@@ -426,6 +573,7 @@
             if(_.isFunction(self.instance.start)){
                 self.instance.start();
                 self.settings.state = PluginState.RUNNING;
+                $log.log(self.settings.name +' was running');
             }
         };
         
@@ -434,19 +582,20 @@
             if(_.isFunction(self.instance.stop)){
                 self.instance.stop();
                 self.settings.state = PluginState.PAUSED;
+                $log.log(self.settings.name +' was stopped');
             }
         };
         
-        if (data) {
-            this.setData(data);
+        if (settings) {
+            this.setSettings(settings);
         }
     };
 
     
     Datasource.prototype = {
         
-        setData: function(data) {
-            angular.extend(this.settings, data);
+        setSettings: function(settings) {
+            angular.extend(this.settings, settings);
         },
       /*  updateCallback:function(newData){
             //theFreeboardModel.processDatasourceUpdate(self, newData);
@@ -495,15 +644,25 @@
   
   /** PaneModel */
   .factory('Pane',function(){
-      function Pane(){
+      function Pane(settings){
            var self=this;
            self.title="";
            self.widgets=[];
+           self.settings={}
            
+           if (settings) {
+            this.setSettings(settings);
+          }
       }
       
       Pane.prototype={
-          addWidget:function(widget){},
+          setSettings:function(settings){
+              angular.extend(this.settings, settings);
+          },
+          addWidget:function(widget){
+              this.widgets.push(widget);
+          },
+          removeWidget:function(index){this.widgets.splice(index,1);},
           widgetCanMoveUp:function(widget){},
           widgetCanMoveDown:function(widget){},
           widgetMoveUp:function(widget){},
@@ -515,6 +674,8 @@
           dispose:function(){}
       }
       
+      
+        
       return Pane;
       
   })

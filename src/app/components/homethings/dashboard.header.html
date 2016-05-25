@@ -1,4 +1,4 @@
-<header id="main-header"  style="position:absolute; display: block;left:0px; top: 0px;" class="slideable">
+<header id="main-header" ng-show="dashboard.allowEdit" lazy-render duration="0.5" style=" display: block;left:0px; top: 0px;" class="slideable animate-slidedown">
     <div id="admin-bar">
         <div id="admin-menu">
             <div id="board-tools">
@@ -49,18 +49,13 @@
             </div>
         </div>
     </div>
-    <!--
-	<div id="column-tools" class="responsive-column-width" style="max-width: 963px; display: block; width: 960px;">
-		<ul class="board-toolbar left-columns">
-			<li class="column-tool add min" data-bind="click: addGridColumnLeft"><span class="column-icon right"></span><i class="icon-arrow-left icon-white"></i></li>
-			<li class="column-tool sub min" data-bind="click: subGridColumnLeft"><span class="column-icon left"></span><i class="icon-arrow-right icon-white"></i></li>
-		</ul>
-		<ul class="board-toolbar right-columns">
-			<li class="column-tool sub min" data-bind="click: subGridColumnRight"><span class="column-icon right"></span><i class="icon-arrow-left icon-white"></i></li>
-			<li class="column-tool add min" data-bind="click: addGridColumnRight"><span class="column-icon left"></span><i class="icon-arrow-right icon-white"></i></li>
-		</ul>
-	</div>-->
+<!--
     <div id="toggle-header" slide-toggle="#main-header"  expanded="true"  toggle-value="false">
+        <i id="toggle-header-icon" class="fa fa-chevron-up" aria-hidden="true"></i>
+	</div>
+    -->
+    
+    <div id="toggle-header" ng-click="dashboard.allowEdit=false">
         <i id="toggle-header-icon" class="fa fa-chevron-up" aria-hidden="true"></i>
 	</div>
 </header>

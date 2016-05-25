@@ -1113,6 +1113,27 @@ a:focus {
 	text-decoration: underline;
 }
 
+
+  .animate-slidedown {
+    line-height:20px;
+    opacity:1;
+    padding:10px;
+    border:1px solid black;
+    //background:white;
+  }
+
+  .animate-slidedown.ng-hide-add.ng-hide-add-active,
+  .animate-slidedown.ng-hide-remove.ng-hide-remove-active {
+    -webkit-transition:all linear 0.5s;
+    transition:all linear 0.5s;
+  }
+
+  .animate-slidedown.ng-hide {
+    line-height:0;
+    opacity:0;
+    padding:0 10px;
+  }
+  
 .gridster header {
 	background-color: #272727;
 	height: 30px;
@@ -1151,9 +1172,9 @@ header h1 {
 
 #main-header {
 	width: 100%;
-	position: fixed;
+	//position: fixed;
 	z-index: 50;
-	display: none;
+	//display: none;
 }
 
 #admin-bar {
@@ -1204,7 +1225,7 @@ header h1 {
 	top: 0px;
 	right: 0px;
 	position: absolute;
-	display: none;
+	//display: none;
 }
 
 .datasource-edit-btn {

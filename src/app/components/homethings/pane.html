@@ -1,0 +1,19 @@
+ <div class="gs_w" style="cursor: pointer; display: list-item;">
+    <header>
+        <h1 >{{title || 'TITLE'}}</h1>
+        <ul class="board-toolbar pane-tools" style="display: block;">
+            <li ng-click="addWidget($index)" uib-tooltip="Add Widget">
+                <i class="fa fa-plus "></i>
+            </li>
+            <li ng-click="editPane()" uib-tooltip="Edit">
+                <i class="fa fa-wrench icon-white"></i>
+            </li>
+            <li ng-click="deletePane()" uib-tooltip="Delete">
+                <i class="fa fa-trash icon-white"></i>
+            </li>
+        </ul>
+    </header>
+    <section ng-repeat="widget in pane.widgets" >
+       <div ng-include="widget.getTemplate()"></div>
+    </section>
+</div>

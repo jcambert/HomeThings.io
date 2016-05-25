@@ -2,7 +2,7 @@
   'use strict';
 
   angular
-    .module('homeThingsIo', ['ngAnimate', 'ngCookies', 'ngTouch', 'ngSanitize', 'ngMessages', 'ngAria', 'restangular', 'ui.router', 'ui.bootstrap','rx', 'toastr','frapontillo.bootstrap-switch'])
+    .module('homeThingsIo', ['ngAnimate', 'ngCookies', 'ngTouch', 'ngSanitize', 'ngMessages', 'ngAria', 'restangular', 'ui.router', 'ui.bootstrap','rx', 'toastr','frapontillo.bootstrap-switch','gridstack-angular'])
    
     ;
 

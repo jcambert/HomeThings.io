@@ -6,7 +6,7 @@
   .constant('PluginState',{CREATED:0,INSTANCIED:1,PAUSED:2,RUNNING:3})
   .constant('FormState',{ADD:0,MODIFY:1})
   .controller('dashboardController',function(){})
-  .directive('dashboardUi',function($log, $uibModal,$animate,Dashboard,Datasource,Pane,datasourcePlugins,widgetPlugins,FormState){
+  .directive('dashboardUi',function($log, $uibModal,$animate,Dashboard,Datasource,Pane,Widget,datasourcePlugins,widgetPlugins,FormState){
       return{
           restrict:'E',
           transclude:true,
@@ -86,7 +86,7 @@
             
             self.deleteDatasource = function(name){
                 self.datasources[name].dispose();
-                delete self.datasource[name];
+                delete self.datasources[name];
             };
             self.updateDatasourceData = function(name){
                 self.datasources[name].updateNow();
@@ -127,7 +127,7 @@
 
 
                   modalInstance.result.then(function (settings) {
-                    self.panes[index].settings=settings;
+                        self.panes[index].settings=settings;
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
@@ -136,6 +136,7 @@
             
             self.addWidget = function(indexPane){
                 $log.log('add widget to pane '+indexPane);
+                $log.log(self.panes[indexPane]);
                 var modalInstance = $uibModal.open({
                     animation: true,
                     templateUrl: 'app/components/homethings/widget.modal.html',
@@ -151,8 +152,10 @@
                     });
 
 
-                  modalInstance.result.then(function (settings) {
-                    
+                  modalInstance.result.then(function (selectedItem) {
+                        var widget=new Widget(selectedItem);
+                        widget.setType(_.find(widgetPlugins.all(),function(widget){return selectedItem.type == widget.type_name}));
+                        self.panes[indexPane].addWidget(widget);
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
@@ -163,12 +166,13 @@
             }
             
              self.addPane();
-           _.forEach(widgetPlugins.all(),function(widget){
+             self.dashboard.allowEdit = true;
+          /* _.forEach(widgetPlugins.all(),function(widget){
                widget.newInstance({},function(instance){
                    self.panes[0].addWidget(instance); 
                });
               
-           })
+           })*/
           },
           link:function($scope,$element,attrs){
               
@@ -275,7 +279,7 @@
     };
      
     self.ok = function () {
-        $uibModalInstance.close(self.pane);
+        $uibModalInstance.close(self.selected.item);
     };
 
     self.cancel = function () {
@@ -308,6 +312,9 @@
                     break;
                case 'array':
                     dest[setting.name]= [];
+                    break;
+               case 'calculated':
+                    dest[setting.name]=setting.default || "";
                     break;
                default:
                    break;
@@ -405,7 +412,15 @@
     return {
         restrict:'E',
         replace:true,
-        templateUrl:'app/components/homethings/widget.html'
+        templateUrl:'app/components/homethings/widget.html',
+        /*scope:{
+            datasources:'=',
+            
+        },*/
+        controller:function($log,$scope){
+            $log.log('Widget controller start');
+            $log.log($scope.datasources)
+        }
     }    
 })
 
@@ -693,20 +708,62 @@
   })
   
   /**WidgetModel */
-  .factory('Widget',function(){
-      function Widget(){
+  .factory('Widget',function($log,widgetPlugins){
+      function Widget(settings){
           var self=this;
           self.datasourceRefreshNotifications={};
           self.calculatedSettingScripts={};
-          self.title = "";
           self.fillSize = false;
           self.type = undefined;
           self.settings={};
           self._heightUpdate=undefined;
           self.shouldRender=false;
+          
+          self.setType = function(widget){
+              if(widget == undefined) return;
+              self.disposeInstance();
+              $log.log('widget set type');
+            if ( widgetPlugins.has(widget) && _.isFunction(widget.newInstance)) {
+                var widgetType = widget;
+
+                function finishLoad() {
+                    widgetType.newInstance(self.settings, function (instance) {
+
+                        self.fillSize((widgetType.fill_size === true));
+                        self.widgetInstance = widget;
+                        self.shouldRender(true);
+                        self._heightUpdate.valueHasMutated();
+
+                    });
+                }
+
+                // Do we need to load any external scripts?
+                if (widgetType.external_scripts) {
+                    head.js(widgetType.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
+                }
+                else {
+                    finishLoad();
+                }
+            }
+          };
+          
+          self.disposeInstance = function(){
+            if(!_.isUndefined(self.instance))
+            {
+                if(_.isFunction(self.instance.onDispose))
+                {
+                    self.instance.onDispose();
+                }
+
+                self.instance = undefined;
+            }
+        };
+          if(settings)
+            self.setSettings(settings)
       }
       
       Widget.prototype={
+          setSettings: function(settings){angular.extend(this.settings, settings);},
           processDatasourceUpdate:function(datasourceName){},
           callValueFunction:function(fn){},
           processSizeChange:function(){},
@@ -717,6 +774,7 @@
           serialize : function () {},
           deserialize : function (object) {}
       }
+      return Widget;
   })
   ;
   

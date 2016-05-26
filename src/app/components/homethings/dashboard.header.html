@@ -19,7 +19,7 @@
                 <h2 class="title">DATASOURCES</h2>
 
                 <div class="datasource-list-container">
-                    <table class="table table-condensed sub-table" id="datasources-list" ng-if="datasources.length>0">
+                    <table class="table table-condensed sub-table" id="datasources-list">
                         <thead>
                         <tr>
                             <th>Name</th>
@@ -28,7 +28,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr ng-repeat="(key, datasource) in datasources track by $index">{{key}}
+                        <tr ng-repeat="datasource in datasources track by $index">{{datasource}}
                             <td>
                                 <span class="text-button datasource-name" ng-click="modifyDatasource(datasource.settings.name)" uib-tooltip="{{'Modify ' + datasource.settings.name}}" >{{datasource.settings.name}}</span>
                             </td>

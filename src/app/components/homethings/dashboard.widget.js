@@ -36,12 +36,14 @@ var textWidget = {
             {
                 name: "title",
                 display_name: "Title",
-                type: "text"
+                type: "text",
+                default:"default"
             },
             {
                 name: "size",
                 display_name: "Size",
                 type: "option",
+                default: "regular",
                 options: [
                     {
                         name: "Regular",
@@ -56,23 +58,27 @@ var textWidget = {
             {
                 name: "value",
                 display_name: "Value",
-                type: "calculated"
+                type: "calculated",
+                default:'datasource["clock"].full_string_value'
             },
             {
                 name: "sparkline",
                 display_name: "Include Sparkline",
-                type: "boolean"
+                type: "boolean",
+                default:false
             },
             {
                 name: "animate",
                 display_name: "Animate Value Changes",
                 type: "boolean",
-                default_value: true
+                default_value: true,
+                default:false
             },
             {
                 name: "units",
                 display_name: "Units",
-                type: "text"
+                type: "text",
+                default:'heures'
             }
         ],
         newInstance: function (settings, newInstanceCallback) {

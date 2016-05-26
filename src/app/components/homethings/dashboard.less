@@ -1113,12 +1113,19 @@ a:focus {
 	text-decoration: underline;
 }
 
-
-  .animate-slidedown {
+/* animation slide down */
+.slide.ng-enter {
+  transition:0.5s linear all;
+  transform:translateY(-100px);
+}
+.slide.ng-enter.ng-enter-active {
+  transform:translateY(0);
+}
+ /* .animate-slidedown {
     line-height:20px;
     opacity:1;
     padding:10px;
-    border:1px solid black;
+   // border:1px solid black;
     //background:white;
   }
 
@@ -1132,7 +1139,8 @@ a:focus {
     line-height:0;
     opacity:0;
     padding:0 10px;
-  }
+  }*/
+  /* end animation slide down */
   
 .gridster header {
 	background-color: #272727;

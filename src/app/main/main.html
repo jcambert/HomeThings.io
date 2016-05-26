@@ -4,8 +4,8 @@
       <dashboard-content > 
           <div class ="row"> 
               <div class="col-md-12">
-                   <dashboard-header ></dashboard-header>
-                    <dashboard-toggle-header></dashboard-toggle-header>
+                   <dashboard-header class="slide"  ng-show="dashboard.allowEdit"></dashboard-header>
+                   <dashboard-toggle-header ></dashboard-toggle-header>
               </div>
               <div class="col-md-12">
                 <div gridstack class="grid-stack grid1" options="options" >

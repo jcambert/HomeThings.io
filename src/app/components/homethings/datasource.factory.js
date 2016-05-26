@@ -1,4 +1,4 @@
-(function(angular,_,watch,head) {
+(function(angular,_,watch,head,$) {
   'use strict';
   angular
   .module('homeThingsIo')
@@ -6,7 +6,7 @@
   .constant('PluginState',{CREATED:0,INSTANCIED:1,PAUSED:2,RUNNING:3})
   .constant('FormState',{ADD:0,MODIFY:1})
   .controller('dashboardController',function(){})
-  .directive('dashboardUi',function($log, $uibModal,Dashboard,Datasource,Pane,datasourcePlugins,widgetPlugins,FormState){
+  .directive('dashboardUi',function($log, $uibModal,$animate,Dashboard,Datasource,Pane,datasourcePlugins,widgetPlugins,FormState){
       return{
           restrict:'E',
           transclude:true,
@@ -17,8 +17,7 @@
               var self=$scope;
               self.dashboard = new Dashboard();
               
-              self.datasources = [];
-              
+              self.datasources = {};
               self.panes = [];
               
            
@@ -29,12 +28,12 @@
               });
               
               
-              $log.log('datasources plugins:');$log.log(datasourcePlugins.all());
+              //$log.log('datasources plugins:');$log.log(datasourcePlugins.all());
               self.addDatasource = function(){
                  var modalInstance = $uibModal.open({
                     animation: true,
-                    templateUrl: 'app/components/homethings/datasource.html',
-                    controller: 'AddDatasourceModalController',
+                    templateUrl: 'app/components/homethings/datasource.modal.html',
+                    controller: 'DatasourceModalController',
                     size: 'lg',
                     resolve: {
                         options:function() {
@@ -48,19 +47,21 @@
                   modalInstance.result.then(function (selectedItem) {
                     var datasource=new Datasource(selectedItem);
                     datasource.setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
-                    self.datasources.push(datasource);
+                    self.datasources[datasource.settings.name]=datasource;
+                     $log.log('list of datasources after adding');
+                    $log.log(self.datasources);
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
 
               };
-            self.modifyDatasource = function(index){
-                var ds=self.datasources[index];
-                $log.log(ds);$log.log(index);
+            self.modifyDatasource = function(name){
+                var ds=self.datasources[name];
+                $log.log(ds);$log.log(name);
                 var modalInstance = $uibModal.open({
                     animation: true,
-                    templateUrl: 'app/components/homethings/datasource.html',
-                    controller: 'AddDatasourceModalController',
+                    templateUrl: 'app/components/homethings/datasource.modal.html',
+                    controller: 'DatasourceModalController',
                     size: 'lg',
                     resolve: {
                         options:function() {
@@ -75,29 +76,26 @@
 
                   modalInstance.result.then(function (selectedItem) {
                     $log.log(selectedItem);
-                    self.datasources[index]=new Datasource(selectedItem);
-                    self.datasources[index].setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
+                    self.datasources[name]=new Datasource(selectedItem);
+                    self.datasources[name].setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
+                   
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
             };
             
-            self.deleteDatasource = function(index){
-                var ds=self.datasources[index];
-                ds.dispose();
-                self.datasources.splice(index,1)
+            self.deleteDatasource = function(name){
+                self.datasources[name].dispose();
+                delete self.datasource[name];
             };
-            self.updateDatasourceData = function(index){
-                var ds=self.datasources[index];
-                ds.updateNow();
+            self.updateDatasourceData = function(name){
+                self.datasources[name].updateNow();
             };
-            self.stopDatasourceData = function(index){
-                var ds=self.datasources[index];
-                ds.stop();
+            self.stopDatasourceData = function(name){
+                self.datasources[name].stop();
             };
-            self.startDatasourceData = function(index){
-                var ds=self.datasources[index];
-                ds.start();
+            self.startDatasourceData = function(name){
+                self.datasources[name].start();
             };
             
             self.addPane = function(){
@@ -107,6 +105,61 @@
            
             self.removePane = function(index){
                 self.panes.splice(index,1);
+            };
+            
+            self.editPane = function(index){
+                var pane=angular.copy(self.panes[index].settings);
+                $log.log('edit pane ');$log.log(pane);
+                var modalInstance = $uibModal.open({
+                    animation: true,
+                    templateUrl: 'app/components/homethings/pane.modal.html',
+                    controller: 'PaneModalController',
+                    size: 'lg',
+                    resolve: {
+                        options:function() {
+                            return{
+                                pane: pane,
+                                mode: FormState.MODIFY
+                                }
+                            }
+                        }
+                    });
+
+
+                  modalInstance.result.then(function (settings) {
+                    self.panes[index].settings=settings;
+                  }, function () {
+                    $log.info('Modal dismissed at: ' + new Date());
+                  });
+            };
+            
+            
+            self.addWidget = function(indexPane){
+                $log.log('add widget to pane '+indexPane);
+                var modalInstance = $uibModal.open({
+                    animation: true,
+                    templateUrl: 'app/components/homethings/widget.modal.html',
+                    controller: 'WidgetModalController',
+                    size: 'lg',
+                    resolve: {
+                        options:function() {
+                            return{
+                                mode: FormState.ADD
+                                }
+                            }
+                        }
+                    });
+
+
+                  modalInstance.result.then(function (settings) {
+                    
+                  }, function () {
+                    $log.info('Modal dismissed at: ' + new Date());
+                  });
+            };
+            
+            self.editWidget = function(indxPane,indexWidget){
+                
             }
             
              self.addPane();
@@ -124,7 +177,7 @@
   })
   
    
-  .controller('AddDatasourceModalController',function($log,$scope,$uibModalInstance,datasourcePlugins,FormState,PluginState,options){
+  .controller('DatasourceModalController',function($log,$scope,$uibModalInstance,datasourcePlugins,FormState,PluginState,options){
      var self=$scope;
      self.datasources=datasourcePlugins.all();
      self.datasource = options.datasource;
@@ -201,11 +254,11 @@
      self.createPlugin();
   })
   
-  .controller('modifyDatasourceController',function($log,$scope,$uibModalInstance,PluginState,options){
-    var self = this;
-    self.datasource = options.datasource;
+  .controller('PaneModalController',function($log,$scope,$uibModalInstance,options){
+    var self = $scope;
+    self.pane = options.pane;
     self.ok = function () {
-        $uibModalInstance.close(self.plugin);
+        $uibModalInstance.close(self.pane);
     };
 
     self.cancel = function () {
@@ -213,7 +266,60 @@
     };
   })
   
-  .directive('dashboardHeader',function(){
+.controller('WidgetModalController',function($log,$scope,$uibModalInstance,FormState,PluginState,widgetPlugins,options){
+    var self = $scope;
+    self.mode = options.mode;
+    self.widgets = widgetPlugins.all();
+    self.selected={
+        item:{}
+    };
+     
+    self.ok = function () {
+        $uibModalInstance.close(self.pane);
+    };
+
+    self.cancel = function () {
+        $uibModalInstance.dismiss('cancel');
+    };
+    
+    self.createPlugin = function(){
+        if(self.mode == FormState.MODIFY) return;
+        self.plugin=createDefaultSettings(self.selected.item.settings);
+        self.plugin.state=PluginState.CREATED;
+    };
+    
+    function createDefaultSettings(settings){
+        $log.log('createDefaultSettings');
+        var dest={'name':'','type':self.selected.item.type_name};
+        
+       _.forEach(settings,function(setting){
+           switch (setting.type) {
+               case 'integer':
+                   dest[setting.name]= setting.default || 0;
+                   break;
+               case 'text':
+                    dest[setting.name]= setting.default || "";
+                    break;
+               case 'boolean':
+                    dest[setting.name]=setting.default ||false;
+                    break;
+               case 'option':   
+                    dest[setting.name]= setting.default || "";
+                    break;
+               case 'array':
+                    dest[setting.name]= [];
+                    break;
+               default:
+                   break;
+           }
+       });
+       $log.log(dest);
+       return dest;
+    }
+    self.createPlugin();
+  })
+  
+  .directive('dashboardHeader',function($animate){
       return{
           restrict:'E',
           replace:true,
@@ -240,153 +346,50 @@
         
     }
   })
-  /*
-  .directive('slideable', function () {
-    return {
-        restrict:'C',
-        compile: function (element, attr) {
-            // wrap tag
-            var contents = element.html();
-            element.html('<div class="slideable_content" style="margin:0 !important; padding:0 !important" >' + contents + '</div>');
-
-            return function postLink(scope, element, attrs) {
-                // default properties
-                attrs.duration = (!attrs.duration) ? '1s' : attrs.duration;
-                attrs.easing = (!attrs.easing) ? 'ease-in-out' : attrs.easing;
-                element.css({
-                    'overflow': 'hidden',
-                    'height': '0px',
-                    'transitionProperty': 'height',
-                    'transitionDuration': attrs.duration,
-                    'transitionTimingFunction': attrs.easing
-                });
-            };
-        }
-    }; 
+.directive('calculatedField',function(){
+    return{
+        restrict:'E',
+        replace:true,
+        templateUrl:'app/components/homethings/calculatedField.html'
+        
+    }
 })
-.directive('slideToggle', function() {
-    return {
-        restrict: 'A',
-        link: function(scope, element, attrs) {
-           attrs.expanded = attrs.expanded=='true' || false; 
-           attrs.toggleValue = attrs.toggleValue=='true' || false;
-            element.bind('click', function() {
-                 var target = document.querySelector(attrs.slideToggle);
-                 
-                
-                var content = target.querySelector('.slideable_content');
-                if(!attrs.expanded) {
-                    content.style.border = '1px solid rgba(0,0,0,0)';
-                    var y = content.clientHeight;
-                    content.style.border = 0;
-                    target.style.height = y + 'px';
-                    
-                } else {
-                    target.style.height = '0px';
-                }
-                if(attrs.toggleValue){
-                    attrs.expanded = !attrs.expanded;
-                    scope.$emit(attrs.slideToggle+"_toggle",{toggle:attrs.expanded});
-                }else{
-                    scope.$emit(attrs.slideToggle+"_toggle",{toggle:!attrs.expanded});
-                }
-            });
-        }
-    }
-})*/
-
-.directive('ngSlideDown', 
-    function ($timeout) {
-      var getTemplate, link;
-      getTemplate = function (tElement, tAttrs) {
-        if (tAttrs.lazyRender !== void 0) {
-          return '<div ng-if=\'lazyRender\' ng-transclude></div>';
-        } else {
-          return '<div ng-transclude></div>';
-        }
-      };
-      link = function (scope, element, attrs, ctrl, transclude) {
-        var closePromise, duration, elementScope, emitOnClose, getHeight, hide, lazyRender, onClose, show;
-        duration = attrs.duration || 1;
-        elementScope = element.scope();
-        emitOnClose = attrs.emitOnClose;
-        onClose = attrs.onClose;
-        lazyRender = attrs.lazyRender !== void 0;
-        if (lazyRender) {
-          scope.lazyRender = scope.expanded;
-        }
-        closePromise = null;
-        element.css({
-          overflow: 'hidden',
-          transitionProperty: 'height',
-          transitionDuration: '' + duration + 's',
-          transitionTimingFunction: 'ease-in-out'
-        });
-        getHeight = function (passedScope) {
-          var c, children, height, _i, _len;
-          height = 0;
-          children = element.children();
-          for (_i = 0, _len = children.length; _i < _len; _i++) {
-            c = children[_i];
-            height += c.clientHeight;
-          }
-          return '' + height + 'px';
-        };
-        show = function () {
-          if (closePromise) {
-            $timeout.cancel(closePromise);
-          }
-          if (lazyRender) {
-            scope.lazyRender = true;
-          }
-          return element.css('height', getHeight());
-        };
-        hide = function () {
-          element.css('height', '0px');
-          if (emitOnClose || onClose || lazyRender) {
-            return closePromise = $timeout(function () {
-              if (emitOnClose) {
-                scope.$emit(emitOnClose, {});
-              }
-              if (onClose) {
-                elementScope.$eval(onClose);
-              }
-              if (lazyRender) {
-                return scope.lazyRender = false;
-              }
-            }, duration * 1000);
-          }
-        };
-        scope.$watch('expanded', function (value, oldValue) {
-          if (value) {
-            return $timeout(show);
-          } else {
-            return $timeout(hide);
-          }
-        });
-        return scope.$watch(getHeight, function (value, oldValue) {
-          if (scope.expanded && value !== oldValue) {
-            return $timeout(show);
-          }
-        });
-      };
-      return {
-        restrict: 'A',
-        scope: { expanded: '=ngSlideDown' },
-        transclude: true,
-        link: link,
-       /* template: function (tElement, tAttrs) {
-          return getTemplate(tElement, tAttrs);
-        }*/
-      };
-    }
-  )
   
+.animation('.slide', function($log) {
+  return {
+    // make note that other events (like addClass/removeClass)
+    // have different function input parameters
+    enter: function(element, doneFn) {
+        $log.log('enter slide');
+      angular.element(element).fadeIn(1000, doneFn);
+
+      // remember to call doneFn so that angular
+      // knows that the animation has concluded
+    },
+
+    move: function(element, doneFn) {
+     angular.element(element).fadeIn(1000, doneFn);
+    },
+
+    leave: function(element, doneFn) {
+      angular.element(element).fadeOut(1000, doneFn);
+    }
+  }
+})
+
 .directive('datasourceTypeSelect',function(){
     return {
         restrict:'E',
         replace:true,
         template:'<select ng-model="selected.item" ng-options="datasource.display_name for datasource in datasources"><option value="">Select a type ...</option></select>'
+    }
+})
+
+.directive('widgetTypeSelect',function(){
+    return {
+        restrict:'E',
+        replace:true,
+        template:'<select ng-model="selected.item" ng-options="widget.display_name for widget in widgets"><option value="">Select a type ...</option></select>'
     }
 })
 
@@ -397,6 +400,15 @@
         templateUrl:'app/components/homethings/pane.html'
     }
 })
+
+.directive('widget',function(){
+    return {
+        restrict:'E',
+        replace:true,
+        templateUrl:'app/components/homethings/widget.html'
+    }    
+})
+
 .provider('datasourcePlugins',function(_){
     var self=this;
     self.plugins=[];
@@ -506,7 +518,7 @@
         var self = this;
         
         self.instance = undefined;
-        self.name = "";
+        //self.name = "";
         self.latestData = {};
         self.settings = {};
         var type = {};
@@ -646,7 +658,7 @@
   .factory('Pane',function(){
       function Pane(settings){
            var self=this;
-           self.title="";
+           
            self.widgets=[];
            self.settings={}
            
@@ -709,5 +721,5 @@
   ;
   
   
-})(angular,_,WatchJS.watch,head);
+})(angular,_,WatchJS.watch,head,$);
 

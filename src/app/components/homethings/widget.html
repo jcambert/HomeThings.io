@@ -1,0 +1,11 @@
+<div class="sub-section sub-section-height-1" >
+    <div class="widget" >
+       <div ng-include="widget.getTemplate()"></div>
+    </div>
+    <div class="sub-section-tools" ng-show="dashboard.allowEdit">
+        <ul class="board-toolbar">
+            <li ng-click="editWidget($parent.$index,$index)"><i class="fa fa-wrench"></i></li>
+            <li  ng-click="deleteWidget($parent.$index,$index)"><i class="fa fa-trash-o"></i></li>
+        </ul>
+    </div>
+</div>

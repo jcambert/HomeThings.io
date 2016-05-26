@@ -1,4 +1,4 @@
-<header id="main-header" ng-show="dashboard.allowEdit" lazy-render duration="0.5" style=" display: block;left:0px; top: 0px;" class="slideable animate-slidedown">
+<header id="main-header"  style=" display: block;left:0px; top: 0px;" >
     <div id="admin-bar">
         <div id="admin-menu">
             <div id="board-tools">
@@ -28,17 +28,17 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr ng-repeat="datasource in datasources">
+                        <tr ng-repeat="(key, datasource) in datasources track by $index">{{key}}
                             <td>
-                                <span class="text-button datasource-name" ng-click="modifyDatasource($index)" uib-tooltip="{{'Modify ' + datasource.settings.name}}" >{{datasource.settings.name}}</span>
+                                <span class="text-button datasource-name" ng-click="modifyDatasource(datasource.settings.name)" uib-tooltip="{{'Modify ' + datasource.settings.name}}" >{{datasource.settings.name}}</span>
                             </td>
                             <td>{{datasource.last_updated}}</td>
                             <td>
                                 <ul class="board-toolbar">
-                                    <li ng-click="stopDatasourceData($index)" uib-tooltip="{{'Stop ' + datasource.settings.name }}" ng-if="datasource.settings.state == 3"><i class="fa fa-stop"></i></li>
-                                    <li ng-click="startDatasourceData($index)" uib-tooltip="{{'Start ' + datasource.settings.name }}" ng-if="datasource.settings.state == 0 || datasource.settings.state == 2 "><i class="fa fa-play"></i></li>
-                                    <li ng-click="updateDatasourceData($index)" uib-tooltip="{{'Refresh ' + datasource.settings.name }}" ng-if="datasource.settings.state == 3"><i class="fa fa-refresh"></i></li>
-                                    <li ng-click="deleteDatasource($index)" uib-tooltip="{{'Delete ' + datasource.settings.name }}"><i class="fa fa-trash-o"></i></li>
+                                    <li ng-click="stopDatasourceData(datasource.settings.name)" uib-tooltip="{{'Stop ' + datasource.settings.name }}" ng-if="datasource.settings.state == 3"><i class="fa fa-stop"></i></li>
+                                    <li ng-click="startDatasourceData(datasource.settings.name)" uib-tooltip="{{'Start ' + datasource.settings.name }}" ng-if="datasource.settings.state == 0 || datasource.settings.state == 2 "><i class="fa fa-play"></i></li>
+                                    <li ng-click="updateDatasourceData(datasource.settings.name)" uib-tooltip="{{'Refresh ' + datasource.settings.name }}" ng-if="datasource.settings.state == 3"><i class="fa fa-refresh"></i></li>
+                                    <li ng-click="deleteDatasource(datasource.settings.name)" uib-tooltip="{{'Delete ' + datasource.settings.name }}"><i class="fa fa-trash-o"></i></li>
                                 </ul>
                             </td>
                         </tr>

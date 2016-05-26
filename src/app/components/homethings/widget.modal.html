@@ -1,0 +1,59 @@
+
+    <div class="modal-header">
+        <h3 class="modal-title">Widget</h3>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal" name="dsForm" novalidate>
+            <div class="form-group">
+                <label for="widgetType" class="col-sm-2 control-label">Widget Type</label>
+                <div class="col-sm-10">
+                <widget-type-select id="widgetType"  ng-if="mode == 0" > </widget-type-select>
+                </div>
+            </div>
+
+            <div class="form-group" ng-repeat="setting in selected.item.settings" ng-if="selected.item.display_name" >
+                <label for="{{setting.name}}" class="col-sm-2 control-label">{{setting.display_name}}</label>
+                <div class="col-sm-10">   
+                    <input type="number" ng-model="plugin[setting.name]" ng-if="setting.type=='integer'" min="1" ng-pattern="/^[0-9]{1,7}$/" required id="{{setting.name}}" placeholder="{{setting.placeholder ||''}}"/>
+                    <input type="text" ng-model="plugin[setting.name]" ng-if="setting.type=='text'" required id="{{setting.name}}" placeholder="{{setting.placeholder ||''}}"/>
+                    <select ng-model="plugin[setting.name]" ng-options="option.value as option.name for option in setting.options" ng-selected="setting.default == option.value"  ng-if="setting.type=='option'" required></select>
+                    <input bs-switch ng-model="plugin[setting.name]" type="checkbox" ng-if="setting.type=='boolean'"  switch-on-text="YES"   switch-off-text="NO"/>
+                    <div class="input-suffix" ng-if="setting.suffix">{{setting.suffix}}</div>
+                    <calculated-field  ng-if="setting.type =='calculated'"></calculated-field>
+                    
+                    <div id="setting-value-container-headers" class="form-value" ng-if="setting.type=='array'">
+                        <div class="form-table-value-subtable">
+                            <table class="table table-condensed sub-table">
+                                <thead style="display: none;">
+                                    <tr><th ng-repeat="item in setting.settings">{{item.display_name}}</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="item in plugin[setting.name]">
+                                        <td > 
+                                            <input class="table-row-value" type="text" ng-model="item.name">
+                                        </td>
+                                        <td>
+                                            <input class="table-row-value" type="text" ng-model="item.value">
+                                        </td>
+                                        <td class="table-row-operation">
+                                            <ul class="board-toolbar">
+                                                <li ng-click="deleteRow(setting.name, $index)"><i class="fa fa-trash-o fa-2x"></i></li>
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-operation text-button" ng-click="addRow(setting.name)">ADD</div>
+                    </div>
+                    <div class="setting-description col-md-offset-3" ng-if="setting.description">{{setting.description}}</div>
+                </div>
+            </div>
+        </form>
+       <div>Selected: <b>{{ selected.item.display_name }}</b></div>
+        <div>Plugin: {{plugin}}</div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" type="button" ng-click="ok()" ng-disabled="dsForm.$invalid">OK</button>
+        <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+    </div>

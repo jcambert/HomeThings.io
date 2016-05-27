@@ -8,11 +8,11 @@ angular.module('homeThingsIo')
         widgetPluginsProvider.add(textWidget_copy);
     })  
 ;
-var TextWidget = function (settings) {
+var TextWidget = function (settings,$templateCache) {
 
-    var self = this;
+    
 
-    self.getTemplate = function(){return "app/components/homethings/temp.widget.html";}
+    this.getTemplate = function(){return "app/components/homethings/text.widget.html";}
     
 
     this.render = function (element) {
@@ -59,7 +59,7 @@ var textWidget = {
                 name: "value",
                 display_name: "Value",
                 type: "calculated",
-                default:'datasource["clock"].full_string_value'
+                default:'datasources.clock.full_string_value'
             },
             {
                 name: "sparkline",
@@ -81,8 +81,8 @@ var textWidget = {
                 default:'heures'
             }
         ],
-        newInstance: function (settings, newInstanceCallback) {
-            newInstanceCallback(new TextWidget(settings));
+        newInstance: function (settings, newInstanceCallback,$templateCache) {
+            newInstanceCallback(new TextWidget(settings,$templateCache));
         }
 };
 

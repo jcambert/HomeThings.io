@@ -44,9 +44,9 @@
                         }
                     });
 
-                  modalInstance.result.then(function (selectedItem) {
-                    var datasource=new Datasource(selectedItem);
-                    datasource.setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
+                  modalInstance.result.then(function (result) {
+                    var datasource=new Datasource(result.plugin,result.type);
+                    //datasource.setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
                     self.datasources[datasource.settings.name]=datasource;
                      $log.log('list of datasources after adding');
                     $log.log(self.datasources);
@@ -103,7 +103,8 @@
                 $log.log(self.panes);
             };
            
-            self.removePane = function(index){
+            self.deletePane = function(index){
+                self.panes[index].deleteWidgets();
                 self.panes.splice(index,1);
             };
             
@@ -152,19 +153,26 @@
                     });
 
 
-                  modalInstance.result.then(function (selectedItem) {
-                        var widget=new Widget(selectedItem);
-                        widget.setType(_.find(widgetPlugins.all(),function(widget){return selectedItem.type == widget.type_name}));
+                  modalInstance.result.then(function (result) {
+                       $log.log('adding widget');
+                        $log.log(result);
+                        var widget=new Widget(result.plugin,result.type);
+                        //widget.setType(_.find(widgetPlugins.all(),function(widget){return selectedItem.type_name == widget.type_name}));
                         self.panes[indexPane].addWidget(widget);
+                        $log.log(self.panes);
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
             };
             
-            self.editWidget = function(indxPane,indexWidget){
-                
+            self.editWidget = function(indexPane,indexWidget){
+                $log.log('edit widget ' + indexWidget + ' of pane '+indexPane );
             }
             
+            self.deleteWidget = function(indexPane,indexWidget){
+                $log.log('delete widget ' + indexWidget + ' of pane '+indexPane );
+                self.panes[indexPane].deleteWidget(indexWidget);
+            }
              self.addPane();
              self.dashboard.allowEdit = true;
           /* _.forEach(widgetPlugins.all(),function(widget){
@@ -198,7 +206,7 @@
      }
      
      self.ok = function () {
-        $uibModalInstance.close(self.plugin);
+        $uibModalInstance.close({plugin:self.plugin,type:self.selected.item});
     };
 
     self.cancel = function () {
@@ -279,7 +287,7 @@
     };
      
     self.ok = function () {
-        $uibModalInstance.close(self.selected.item);
+        $uibModalInstance.close({plugin:self.plugin,type:self.selected.item});
     };
 
     self.cancel = function () {
@@ -408,7 +416,7 @@
     }
 })
 
-.directive('widget',function(){
+.directive('widget',function($rootScope,$log,$interpolate,$parse){
     return {
         restrict:'E',
         replace:true,
@@ -417,9 +425,35 @@
             datasources:'=',
             
         },*/
-        controller:function($log,$scope){
+     /*   controller:function($scope){
             $log.log('Widget controller start');
-            $log.log($scope.datasources)
+            $log.log($scope.datasources);
+            //$log.log($scope.value);
+            //$scope.value = $eval()
+        },*/
+        link:function($scope,$element,attr){
+            $log.log('scope widget');$log.log($scope);
+            $log.log($scope.datasources['clock']);
+            $log.log($scope.widget.settings.value);
+            var ds=$scope.widget.settings.value.split('.');
+            if(ds[0] == 'datasources'){
+                var s=ds[0]+"['"+ds[1]+"']";
+                //var dds=$parse(s)($scope);
+                $log.log(ds[2]);
+                $scope.value="";
+                $rootScope.$on('DATASOURCE.'+ds[1].toUpperCase(),function(event,data){
+                    $log.log(ds[1] + ' datasource change'); 
+                    $log.log(data.data);
+                    $scope.value = data.data[ds[2]];
+                });
+            }else{
+                var s=$parse($scope.widget.settings.value)($scope);
+                $rootScope.$on('DATASOURCE.'+ds[1].toUpperCase(),function(event,data){
+                    $scope.value = s;
+                });
+            
+            }
+           
         }
     }    
 })
@@ -508,6 +542,7 @@
           processDatasourceUpdate:function(datasource,newData){},
           addPluginSource:function(pluginSource){},
           serialize:function(){},
+          
           deserialize : function(object, finishedCallback){},
           clearDashboard : function(){ },
           loadDashboard : function(dashboardData, callback){},
@@ -529,19 +564,19 @@
   
   /** DatasourceModel */
   .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,datasourcePlugins,PluginState,_){
-    function Datasource(settings) {
+    function Datasource(settings,type) {
         var self = this;
         
         self.instance = undefined;
         //self.name = "";
         self.latestData = {};
         self.settings = {};
-        var type = {};
+        self.type = undefined;
         self.last_updated = new Date().toLocaleTimeString();
         self.last_error = {};
         
  
-        self.setType = function (datasource){
+        function setType (datasource){
             if(datasource == undefined)return;
             type=datasource;
             $log.log('Datasource.type change to:');$log.log(datasource);
@@ -555,6 +590,7 @@
                         {
 
                            self.instance = instance;
+                           self.type = type;
                           //  instance.updateNow();
                           self.settings.state = PluginState.CREATED;
                           $log.log(datasourceType.display_name +' was created');
@@ -592,7 +628,7 @@
             self.latestData=newData;
             var now = new Date();
             self.last_updated=now.toLocaleTimeString();
-            $rootScope.$broadcast('DATASOURCE.UPDATE',{object:self,data:newData});
+            $rootScope.$broadcast('DATASOURCE.'+self.settings.name.toUpperCase(),{object:self,data:newData});
         };
         
         self.start = function(){
@@ -616,6 +652,7 @@
         if (settings) {
             this.setSettings(settings);
         }
+        setType(type);
     };
 
     
@@ -624,7 +661,7 @@
         setSettings: function(settings) {
             angular.extend(this.settings, settings);
         },
-      /*  updateCallback:function(newData){
+        /*updateCallback:function(newData){
             //theFreeboardModel.processDatasourceUpdate(self, newData);
             
             $log.log(newData);console.dir(this);
@@ -670,13 +707,29 @@
   })
   
   /** PaneModel */
-  .factory('Pane',function(){
+  .factory('Pane',function($log){
       function Pane(settings){
            var self=this;
            
            self.widgets=[];
            self.settings={}
+           self.instance=undefined;
            
+            self.disposeInstance = function(){
+                if(!_.isUndefined(self.instance))
+                {
+                    if(_.isFunction(self.instance.onDispose))
+                    {
+                        _.forEach(self.widgets,function(widget) {
+                            widget.dispose();
+                        });
+                        self.instance.onDispose();
+                    }
+
+                    self.instance = undefined;
+                }
+            };
+        
            if (settings) {
             this.setSettings(settings);
           }
@@ -689,7 +742,19 @@
           addWidget:function(widget){
               this.widgets.push(widget);
           },
-          removeWidget:function(index){this.widgets.splice(index,1);},
+          deleteWidget:function(index){
+               $log.log('Delete widget:'+index);
+               $log.log(this.widgets[index]);
+               this.widgets[index].dispose();
+              this.widgets.splice(index,1);
+          },
+          deleteWidgets:function(){
+            _.forEach(this.widget,function(widget){widget.dispose();});
+            self.widgets=[];  
+          },
+          getWidgets:function(){return this.widgets;},
+          
+
           widgetCanMoveUp:function(widget){},
           widgetCanMoveDown:function(widget){},
           widgetMoveUp:function(widget){},
@@ -698,7 +763,9 @@
           getCalculateHeight:function(){},
           serialize:function(){},
           deserialize:function(){},
-          dispose:function(){}
+          dispose:function(){
+              this.disposeInstance();
+          }
       }
       
       
@@ -708,8 +775,8 @@
   })
   
   /**WidgetModel */
-  .factory('Widget',function($log,widgetPlugins){
-      function Widget(settings){
+  .factory('Widget',function($log,$templateCache,widgetPlugins){
+      function Widget(settings,type){
           var self=this;
           self.datasourceRefreshNotifications={};
           self.calculatedSettingScripts={};
@@ -718,28 +785,31 @@
           self.settings={};
           self._heightUpdate=undefined;
           self.shouldRender=false;
+          self.instance=undefined;
           
-          self.setType = function(widget){
-              if(widget == undefined) return;
+          function setType(type){
+              if(type == undefined) return;
               self.disposeInstance();
-              $log.log('widget set type');
-            if ( widgetPlugins.has(widget) && _.isFunction(widget.newInstance)) {
-                var widgetType = widget;
+              $log.log('widget set type');$log.log(widgetPlugins.has(type));$log.log(_.isFunction(type.newInstance));
+              if ( widgetPlugins.has(type) && _.isFunction(type.newInstance)) {
+                
+               
 
                 function finishLoad() {
-                    widgetType.newInstance(self.settings, function (instance) {
-
-                        self.fillSize((widgetType.fill_size === true));
-                        self.widgetInstance = widget;
-                        self.shouldRender(true);
-                        self._heightUpdate.valueHasMutated();
-
-                    });
+                    type.newInstance(self.settings, function (instance) {
+                        self.type=type;
+                        self.instance=instance;
+                        self.fillSize=(type.fill_size === true);
+                        self.shouldRender=true;
+                        self.type=type;
+                        //self._heightUpdate.valueHasMutated();
+                        $log.log('widget end new instance');
+                    },$templateCache);
                 }
 
                 // Do we need to load any external scripts?
-                if (widgetType.external_scripts) {
-                    head.js(widgetType.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
+                if (type.external_scripts) {
+                    head.js(type.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
                 }
                 else {
                     finishLoad();
@@ -759,7 +829,8 @@
             }
         };
           if(settings)
-            self.setSettings(settings)
+            self.setSettings(settings);
+          setType(type);
       }
       
       Widget.prototype={
@@ -770,7 +841,9 @@
           processCalculatedSetting : function (settingName){},
           updateCalculatedSettings : function () {},
           render : function (element) {},
-          dispose : function () {},
+          dispose : function () {
+             this.disposeInstance();
+          },
           serialize : function () {},
           deserialize : function (object) {}
       }

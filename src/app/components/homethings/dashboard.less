@@ -417,7 +417,7 @@ html {
 	-khtml-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
-	user-select: none;
+	-user-select: none;
 	font-family: sans-serif; /* 1 */
 	-ms-text-size-adjust: 100%; /* 2 */
 	-webkit-text-size-adjust: 100%; /* 2 */
@@ -757,6 +757,8 @@ freeboard
 @modal-content-bg:#101214;
 @dashboard-bg:#101214;
 @dashboard-color:#8b8b8b;
+@regular: 30px;
+@big:70px;
 
 html {
 	background-color: @dashboard-bg;
@@ -1113,6 +1115,50 @@ a:focus {
 	text-decoration: underline;
 }
 
+.regular{
+    font-size: @regular;
+    max-width: 100%;
+}
+
+.big{
+    font-size: @big;
+    max-width: 240px;   
+}
+
+.tw-value {
+    font-family: "HelveticaNeue-UltraLight", "Helvetica Neue Ultra Light", "Helvetica Neue", sans-serif;
+    color: #d3d4d4;
+    font-weight: 100;
+    overflow: hidden;
+    display: inline-block;
+    text-overflow: ellipsis;
+}
+.tw-unit {
+    display: inline-block;
+    padding-left: 10px;
+    padding-bottom: 1.1em;
+    vertical-align: bottom;
+}
+.tw-value-wrapper {
+    position: relative;
+    vertical-align: middle;
+    height: 100%;
+}
+.tw-display {
+    width: 100%;
+    height: 100%;
+    display: table;
+    table-layout: fixed;
+}
+
+.tw-tr {
+    display: table-row;
+}
+
+.tw-td {
+    display: table-cell;
+}
+
 /* animation slide down */
 .slide.ng-enter {
   transition:0.5s linear all;
@@ -1319,7 +1365,11 @@ header h1 {
 	height: 240px;
 }
 
-.sub-section:last-of-type {
+/*.sub-section:last-of-type {
+	border-bottom: none;
+}*/
+
+.last-section {
 	border-bottom: none;
 }
 
@@ -1401,7 +1451,7 @@ ul, ol {
 	top: 0;
 }
 
-.gridster .gs_w {
+.gridster{
 	background: #2a2a2a;
 	padding: 0px;
 	margin: 0px;

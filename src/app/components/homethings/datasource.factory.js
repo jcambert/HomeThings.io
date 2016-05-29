@@ -6,7 +6,7 @@
   .constant('PluginState',{CREATED:0,INSTANCIED:1,PAUSED:2,RUNNING:3})
   .constant('FormState',{ADD:0,MODIFY:1})
   .controller('dashboardController',function(){})
-  .directive('dashboardUi',function($log, $uibModal,$animate,Dashboard,Datasource,Pane,Widget,datasourcePlugins,widgetPlugins,FormState){
+  .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboard,Datasource,Pane,Widget,datasourcePlugins,widgetPlugins,FormState){
       return{
           restrict:'E',
           transclude:true,
@@ -58,30 +58,38 @@
             self.modifyDatasource = function(name){
                 var ds=self.datasources[name];
                 $log.log(ds);$log.log(name);
-                var modalInstance = $uibModal.open({
-                    animation: true,
-                    templateUrl: 'app/components/homethings/datasource.modal.html',
-                    controller: 'DatasourceModalController',
-                    size: 'lg',
-                    resolve: {
-                        options:function() {
-                            return{
-                                datasource: ds,
-                                mode: FormState.MODIFY
+                ds.edit(function(){
+                    var deferred = $q.defer();
+                    
+                    var modalInstance = $uibModal.open({
+                        animation: true,
+                        templateUrl: 'app/components/homethings/datasource.modal.html',
+                        controller: 'DatasourceModalController',
+                        size: 'lg',
+                        resolve: {
+                            options:function() {
+                                return{
+                                    datasource: ds,
+                                    mode: FormState.MODIFY
+                                    }
                                 }
                             }
-                        }
+                        });
+
+                    
+                    modalInstance.result.then(function (result) {
+                        $log.log(result);
+                        ds.setSettings(result.plugin);
+                        //self.datasources[name]=new Datasource(selectedItem);
+                        //self.datasources[name].setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
+                        deferred.resolve();
+                    }, function () {
+                        $log.info('Modal dismissed at: ' + new Date());
+                        deferred.resolve();
                     });
-
-
-                  modalInstance.result.then(function (selectedItem) {
-                    $log.log(selectedItem);
-                    self.datasources[name]=new Datasource(selectedItem);
-                    self.datasources[name].setType(_.find(datasourcePlugins.all(),function(datasource){return selectedItem.type == datasource.type_name}));
-                   
-                  }, function () {
-                    $log.info('Modal dismissed at: ' + new Date());
-                  });
+                    
+                    return deferred.promise;
+                });
             };
             
             self.deleteDatasource = function(name){
@@ -109,8 +117,8 @@
             };
             
             self.editPane = function(index){
-                var pane=angular.copy(self.panes[index].settings);
-                $log.log('edit pane ');$log.log(pane);
+                var settings=angular.copy(self.panes[index].settings);
+                
                 var modalInstance = $uibModal.open({
                     animation: true,
                     templateUrl: 'app/components/homethings/pane.modal.html',
@@ -119,7 +127,7 @@
                     resolve: {
                         options:function() {
                             return{
-                                pane: pane,
+                                settings: settings,
                                 mode: FormState.MODIFY
                                 }
                             }
@@ -167,6 +175,30 @@
             
             self.editWidget = function(indexPane,indexWidget){
                 $log.log('edit widget ' + indexWidget + ' of pane '+indexPane );
+                var widget=self.panes[indexPane].getWidget(indexWidget);
+                
+                
+                var modalInstance = $uibModal.open({
+                    animation: true,
+                    templateUrl: 'app/components/homethings/widget.modal.html',
+                    controller: 'WidgetModalController',
+                    size: 'lg',
+                    resolve: {
+                        options:function() {
+                            return{
+                                mode: FormState.MODIFY,
+                                widget:widget
+                                }
+                            }
+                        }
+                    });
+
+
+                  modalInstance.result.then(function (result) {
+                       widget.setSettings(result.plugin);
+                  }, function () {
+                    $log.info('Modal dismissed at: ' + new Date());
+                  });
             }
             
             self.deleteWidget = function(indexPane,indexWidget){
@@ -268,9 +300,9 @@
   
   .controller('PaneModalController',function($log,$scope,$uibModalInstance,options){
     var self = $scope;
-    self.pane = options.pane;
+    self.settings = options.settings;
     self.ok = function () {
-        $uibModalInstance.close(self.pane);
+        $uibModalInstance.close(self.settings);
     };
 
     self.cancel = function () {
@@ -282,9 +314,17 @@
     var self = $scope;
     self.mode = options.mode;
     self.widgets = widgetPlugins.all();
+    self.widget = options.widget;
+    self.plugin= {};
     self.selected={
         item:{}
     };
+
+    if(self.mode == FormState.MODIFY){
+        self.selected.item = widgetPlugins.get(self.widget.settings.type);
+        
+        self.plugin=angular.copy(self.widget.settings);
+     }
      
     self.ok = function () {
         $uibModalInstance.close({plugin:self.plugin,type:self.selected.item});
@@ -425,36 +465,72 @@
             datasources:'=',
             
         },*/
-     /*   controller:function($scope){
-            $log.log('Widget controller start');
-            $log.log($scope.datasources);
-            //$log.log($scope.value);
-            //$scope.value = $eval()
-        },*/
-        link:function($scope,$element,attr){
-            $log.log('scope widget');$log.log($scope);
-            $log.log($scope.datasources['clock']);
-            $log.log($scope.widget.settings.value);
-            var ds=$scope.widget.settings.value.split('.');
-            if(ds[0] == 'datasources'){
-                var s=ds[0]+"['"+ds[1]+"']";
-                //var dds=$parse(s)($scope);
-                $log.log(ds[2]);
-                $scope.value="";
-                $rootScope.$on('DATASOURCE.'+ds[1].toUpperCase(),function(event,data){
-                    $log.log(ds[1] + ' datasource change'); 
-                    $log.log(data.data);
-                    $scope.value = data.data[ds[2]];
-                });
-            }else{
-                var s=$parse($scope.widget.settings.value)($scope);
-                $rootScope.$on('DATASOURCE.'+ds[1].toUpperCase(),function(event,data){
-                    $scope.value = s;
-                });
+        controller:function($scope){
+            $log.log('scope widget');
             
-            }
+            $log.log($scope.widget.settings.value);
+            var listeners=[];
            
-        }
+            $scope.$watch('widget.settings',function(){
+                $log.log('widget settings change');
+                
+                calculate();
+            },true);
+            
+            function unsubscribe(){
+                _.forEach(listeners,function(listener){
+                    $rootScope.$$listeners[listener] = [];
+                })
+                listeners.splice(0,listeners.length);
+            }
+            function calculate(){
+                unsubscribe();
+                var ds=$scope.widget.settings.value.split('.');
+                if(ds[0] == 'datasources'){
+                    $log.log('calculate field as datasource');
+                    var s=ds[0]+"['"+ds[1]+"']";
+                    //var dds=$parse(s)($scope);
+                    $log.log(ds[2]);
+                    $scope.value="";
+                    listeners.push('DATASOURCE.'+ds[1].toUpperCase());
+                    $rootScope.$on(listeners[0],function(event,data){
+                        $log.log(ds[1] + ' datasource change'); 
+                        $log.log(data.data);
+                        $scope.value = data.data[ds[2]];
+                    });
+                }else{
+                    $log.log('calculate field as function');
+                    var script = $scope.widget.settings.value;
+                    var fn = new Function("datasources",script);
+                    var datasourceRegex = new RegExp("datasources.([\\w_-]+)|datasources\\[['\"]([^'\"]+)", "g");
+                    // Are there any datasources we need to be subscribed to?
+					var matches;
+                    
+					while (matches = datasourceRegex.exec(script)) {
+						var dsName = (matches[1] || matches[2]);
+						$log.log('find datasource in script');$log.log(dsName);
+                        //TODO
+                        var listener='DATASOURCE.'+dsName.toUpperCase();
+                        listeners.push(listener);
+                        $rootScope.$on(listener,function (event,data) {
+                            $scope.value = fn($scope.datasources);
+                        },true);
+					}
+                    
+                    
+                   // $scope.$watch('')
+                    //var s=$parse($scope.widget.settings.value)($scope);
+                    //$rootScope.$on('DATASOURCE.'+ds[1].toUpperCase(),function(event,data){
+                        $scope.value = fn($scope.datasources);
+                // });            
+                }
+            }
+            //calculate();
+        }/*,
+        link:function($scope,$element,attr){
+            
+           
+        }*/
     }    
 })
 
@@ -574,7 +650,7 @@
         self.type = undefined;
         self.last_updated = new Date().toLocaleTimeString();
         self.last_error = {};
-        
+        self.isRunning=false;
  
         function setType (datasource){
             if(datasource == undefined)return;
@@ -586,7 +662,7 @@
                 var datasourceType =datasource;
                 function finishLoad()
                     {
-                        datasourceType.newInstance(self.settings, function(instance)
+                        datasourceType.newInstance(self.settings,  function(instance)
                         {
 
                            self.instance = instance;
@@ -597,7 +673,7 @@
                           
                           self.start();
 
-                        }, self.updateCallback,$interval);
+                        }, self.startCallback,self.updateCallback,self.stopCallback ,$interval);
                     }
                 if(datasourceType.external_scripts)
                 {
@@ -624,12 +700,22 @@
             }
         };
         
+        self.startCallback = function(){
+            self.isRunning = true;
+            $log.log(self.settings.name+ " is started in callback");
+        };
+        
         self.updateCallback=function(newData){
             self.latestData=newData;
             var now = new Date();
             self.last_updated=now.toLocaleTimeString();
             $rootScope.$broadcast('DATASOURCE.'+self.settings.name.toUpperCase(),{object:self,data:newData});
         };
+        
+        self.stopCallback = function(){
+            self.isRunning = false;
+            $log.log(self.settings.name+ " is stopped in callback");
+        }
         
         self.start = function(){
             if(_.isUndefined(self.instance))return;
@@ -649,7 +735,20 @@
             }
         };
         
+        
+        self.edit = function(callback){
+            if(_.isUndefined(self.instance))return;
+            var tmprunning=self.isRunning;
+            self.stop();
+            callback().then(function(){
+                if(tmprunning)
+                    self.start();
+            });
+           
+        }
+        
         if (settings) {
+            
             this.setSettings(settings);
         }
         setType(type);
@@ -713,22 +812,7 @@
            
            self.widgets=[];
            self.settings={}
-           self.instance=undefined;
-           
-            self.disposeInstance = function(){
-                if(!_.isUndefined(self.instance))
-                {
-                    if(_.isFunction(self.instance.onDispose))
-                    {
-                        _.forEach(self.widgets,function(widget) {
-                            widget.dispose();
-                        });
-                        self.instance.onDispose();
-                    }
-
-                    self.instance = undefined;
-                }
-            };
+          
         
            if (settings) {
             this.setSettings(settings);
@@ -752,20 +836,36 @@
             _.forEach(this.widget,function(widget){widget.dispose();});
             self.widgets=[];  
           },
+          getWidget : function(index){
+            return this.widgets[index];  
+          },
           getWidgets:function(){return this.widgets;},
           
 
-          widgetCanMoveUp:function(widget){},
-          widgetCanMoveDown:function(widget){},
-          widgetMoveUp:function(widget){},
-          widgetMoveDown:function(widget){},
+          widgetCanMoveUp:function(widgetIndex){
+              return widgetIndex>0;
+          },
+          widgetCanMoveDown:function(widgetIndex){
+              return (widgetIndex+1)<this.widgets.length;
+          },
+          widgetMoveUp:function(widgetIndex){
+              if(!this.widgetCanMoveUp)return;
+              var w=this.widgets[widgetIndex-1];
+              this.widgets[widgetIndex-1]= this.widgets[widgetIndex];
+              this.widgets[widgetIndex]=w;
+          },
+          widgetMoveDown:function(widgetIndex){
+              if(!this.widgetCanMoveDown)return;
+              var w=this.widgets[widgetIndex+1];
+              this.widgets[widgetIndex+1]= this.widgets[widgetIndex];
+              this.widgets[widgetIndex]=w;
+              
+          },
           processSizeChange:function(){},
           getCalculateHeight:function(){},
           serialize:function(){},
           deserialize:function(){},
-          dispose:function(){
-              this.disposeInstance();
-          }
+          
       }
       
       
@@ -788,14 +888,16 @@
           self.instance=undefined;
           
           function setType(type){
+              $log.log('Widget set type to ');$log.log(type);
               if(type == undefined) return;
               self.disposeInstance();
               $log.log('widget set type');$log.log(widgetPlugins.has(type));$log.log(_.isFunction(type.newInstance));
               if ( widgetPlugins.has(type) && _.isFunction(type.newInstance)) {
-                
+                 $log.log('toto');
                
 
                 function finishLoad() {
+                    $log.log('start finishLoad')
                     type.newInstance(self.settings, function (instance) {
                         self.type=type;
                         self.instance=instance;
@@ -808,7 +910,7 @@
                 }
 
                 // Do we need to load any external scripts?
-                if (type.external_scripts) {
+                if (_.isArray(type.external_scripts) && type.external_scripts.lengh>0) {
                     head.js(type.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
                 }
                 else {

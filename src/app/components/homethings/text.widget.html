@@ -1,15 +1,15 @@
 <div class="widget" >
     <div class="tw-display">
-        <div class="tw-tr">
-            <h2 class="section-title tw-title tw-td">Sunset</h2>
+        <div class="tw-tr" ng-show="widget.settings.title.length>0">
+            <h2 class="section-title tw-title tw-td" >{{widget.settings.title}}</h2>
         </div>
-        <div class="tw-tr">
+        <div class="tw-tr" ng-show="value.length>0">
             <div class="tw-value-wrapper tw-td">
-                <div class="tw-value" style="font-size: 30px; max-width: 100%;">{{value}}</div>
-                <div class="tw-unit" >toto</div>
+                <div class="tw-value" ng-class="widget.settings.size" >{{value}}</div>
+                <div class="tw-unit" >{{widget.settings.units}}</div>
             </div>
         </div>
-        <div class="tw-tr">
+        <div class="tw-tr" ng-show="widget.settings.sparkline">
             <div class="tw-sparkline tw-td" >titi</div>
         </div>
     </div>

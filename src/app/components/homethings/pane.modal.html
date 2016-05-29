@@ -6,23 +6,23 @@
     <form class="form-horizontal" name="dsForm" novalidate>
         <div class="form-group">
             <label for="title" class="col-sm-2 control-label">TITLE</label>
-            <input type="text" id="title" ng-model="pane.title"  placeholder="Title of the pane"/> 
+            <input type="text" id="title" ng-model="settings.title"  placeholder="Title of the pane"/> 
         </div>
         <div class="form-group" >
             <label for="positionx" class="col-sm-2 control-label" >POSITION X</label>
-            <input type="integer" id="positionx" ng-model="pane.x"  required min="0" max="11" placeholder="X position"/>  
+            <input type="integer" id="positionx" ng-model="settings.x"  required min="0" max="11" placeholder="X position"/>  
         </div>
          <div class="form-group" >
             <label for="positiony" class="col-sm-2 control-label" >POSITION Y</label>
-            <input type="integer" id="positiony" ng-model="pane.y"   placeholder="Y position"/>  
+            <input type="integer" id="positiony" ng-model="settings.y"   placeholder="Y position"/>  
         </div>
         <div class="form-group" >
             <label for="width" class="col-sm-2 control-label" >WIDTH</label>
-            <input type="integer" id="positionx" ng-model="pane.width"  placeholder="Width"/>  
+            <input type="integer" id="positionx" ng-model="settings.width"  placeholder="Width"/>  
         </div>
          <div class="form-group" >
             <label for="height" class="col-sm-2 control-label" >HEIGHT</label>
-            <input type="integer" id="positiony" ng-model="pane.height"   placeholder="Height"/>  
+            <input type="integer" id="positiony" ng-model="settings.height"   placeholder="Height"/>  
         </div>
     </form>
 </div>

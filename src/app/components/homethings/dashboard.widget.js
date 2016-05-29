@@ -5,7 +5,7 @@ angular.module('homeThingsIo')
     function(widgetPluginsProvider){
         console.log('config from widget');
         widgetPluginsProvider.add(textWidget);
-        widgetPluginsProvider.add(textWidget_copy);
+        widgetPluginsProvider.add(gaugeWidget);
     })  
 ;
 var TextWidget = function (settings,$templateCache) {
@@ -59,7 +59,8 @@ var textWidget = {
                 name: "value",
                 display_name: "Value",
                 type: "calculated",
-                default:'datasources.clock.full_string_value'
+                //default:'datasources.clock.full_string_value'
+                default:"return datasources['clock'].latestData.full_string_value"
             },
             {
                 name: "sparkline",
@@ -86,58 +87,69 @@ var textWidget = {
         }
 };
 
-var textWidget_copy = {
-    type_name: "text_widget",
-        display_name: "Text Copy",
-        "external_scripts" : [
-            "plugins/thirdparty/jquery.sparkline.min.js"
-        ],
+var GaugeWidget =function (settings,$templateCache) {
+
+    console.dir('GaugeWidget created');
+
+    this.getTemplate = function(){return "app/components/homethings/gauge.widget.html";}
+    
+
+    this.render = function (element) {
+        
+    }
+
+
+    this.onDispose = function () {
+
+    }
+
+};
+
+var gaugeWidget={
+        type_name: "gauge",
+        display_name: "Gauge",
+       /* "external_scripts" : [
+            "plugins/thirdparty/raphael.2.1.0.min.js",
+           "plugins/thirdparty/justgage.1.0.1.js"
+        ],*/
         settings: [
             {
                 name: "title",
                 display_name: "Title",
-                type: "text"
-            },
-            {
-                name: "size",
-                display_name: "Size",
-                type: "option",
-                options: [
-                    {
-                        name: "Regular",
-                        value: "regular"
-                    },
-                    {
-                        name: "Big",
-                        value: "big"
-                    }
-                ]
+                type: "text",
+                default:'gauge'
             },
             {
                 name: "value",
                 display_name: "Value",
-                type: "calculated"
-            },
-            {
-                name: "sparkline",
-                display_name: "Include Sparkline",
-                type: "boolean"
-            },
-            {
-                name: "animate",
-                display_name: "Animate Value Changes",
-                type: "boolean",
-                default_value: true
+                type: "calculated",
+                default:'return 1;'
             },
             {
                 name: "units",
                 display_name: "Units",
-                type: "text"
+                type: "text",
+                default:'pct'
+            },
+            {
+                name: "min_value",
+                display_name: "Minimum",
+                type: "integer",
+                min:0,
+                max:100,
+                default: 0
+            },
+            {
+                name: "max_value",
+                display_name: "Maximum",
+                type: "integer",
+                min:0,
+                max:100,
+                default: 100
             }
         ],
-        newInstance: function (settings, newInstanceCallback) {
-            newInstanceCallback(new TextWidget(settings));
+       newInstance: function (settings, newInstanceCallback,$templateCache) {
+            newInstanceCallback(new GaugeWidget(settings,$templateCache));
         }
-}
-
+    };
 }(angular));

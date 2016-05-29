@@ -1,4 +1,4 @@
-(function (angular) {
+(function (angular,_,$) {
 var Timer = function($interval){
     var self=this;
     self._timer = null;
@@ -28,19 +28,23 @@ angular.module('homeThingsIo')
     })  
 ;
 
-var ClockDatasource = function (settings, updateCallback,$interval) {
+var ClockDatasource = function (settings,startCallback, updateCallback,stopCallback,$interval) {
 		var self = this;
 		var currentSettings = settings;
 		self.timer=null;
        
 		this.stop = function() {
             self.timer.stop();
+            if(_.isFunction(stopCallback))
+                stopCallback();
 		}
 
 		this.start = function () {
 			self.stop();
 			//timer =  setInterval(self.updateNow, currentSettings.refresh * 1000);
             self.timer.start(currentSettings.refresh * 1000,self.updateNow);
+            if(_.isFunction(startCallback))
+                startCallback();
 		}
 
 		this.updateNow = function () {
@@ -69,23 +73,7 @@ var ClockDatasource = function (settings, updateCallback,$interval) {
         //console.dir(self.timer);
 		//start();
 	};
-var copy_clock={
-		"type_name": "clock",
-		"display_name": "Clock COPY",
-		"settings": [
-			{
-				"name": "refresh",
-				"display_name": "Refresh Every",
-				"type": "integer",
-				"suffix": "seconds",
-				"default_value": 1,
-                "placeholder":"Refresh time in seconds"
-			}
-		],
-		newInstance: function (settings, newInstanceCallback, updateCallback,$interval) {
-			newInstanceCallback(new ClockDatasource(settings, updateCallback,$interval));
-		}
-	};
+
 var clock={
     "type_name": "clock",
     "display_name": "Clock",
@@ -98,12 +86,51 @@ var clock={
             "default_value": 1
         }
     ],
-    newInstance: function (settings, newInstanceCallback, updateCallback,$interval) {
-        newInstanceCallback(new ClockDatasource(settings, updateCallback,$interval));
+    newInstance: function (settings, newInstanceCallback,startCallback, updateCallback,stopCallback,$interval) {
+        newInstanceCallback(new ClockDatasource(settings, startCallback,updateCallback,stopCallback,$interval));
     }
 };
 
-var OpenWeatherMapDatasource = function (settings, updateCallback) {
+var RandomDatasource =  function (settings,startCallback, updateCallback,stopCallback) {
+    var self = this;
+		var currentSettings = settings;
+		
+       
+		this.stop = function() {
+        
+            if(_.isFunction(stopCallback))
+                stopCallback();
+		}
+
+		this.start = function () {
+			self.stop();
+			
+            if(_.isFunction(startCallback))
+                startCallback();
+		}
+
+		this.updateNow = function () {
+			
+
+			var data = {
+				
+			};
+
+			updateCallback(data);
+		}
+
+		this.onDispose = function () {
+			self.stop();
+		}
+
+		this.onSettingsChanged = function (newSettings) {
+			currentSettings = newSettings;
+			self.start();
+		}
+       
+}
+
+var OpenWeatherMapDatasource = function (settings,startCallback, updateCallback,stopCallback) {
     var self = this;
     var updateTimer = null;
     var currentSettings = settings;
@@ -205,11 +232,11 @@ var weather_plugin={
             default_value: 5
         }
     ],
-    newInstance: function (settings, newInstanceCallback, updateCallback) {
-        newInstanceCallback(new OpenWeatherMapDatasource(settings, updateCallback));
+    newInstance: function (settings, newInstanceCallback, startCallback,updateCallback,stopCallback) {
+        newInstanceCallback(new OpenWeatherMapDatasource(settings, startCallback,updateCallback,stopCallback));
     }
 };
-var JsonDatasource = function (settings, updateCallback) {
+var JsonDatasource = function (settings, startCallback,updateCallback,stopCallback) {
 		var self = this;
 		var updateTimer = null;
 		var currentSettings = settings;
@@ -372,8 +399,8 @@ var json_plugin={
 				]
 			}
 		],
-		newInstance: function (settings, newInstanceCallback, updateCallback) {
-			newInstanceCallback(new JsonDatasource(settings, updateCallback));
+		newInstance: function (settings, newInstanceCallback, startCallback, updateCallback,stopCallback) {
+			newInstanceCallback(new JsonDatasource(settings,startCallback, updateCallback,stopCallback));
 		}
 	};
-}(angular));
+}(angular,_,$));

@@ -1,11 +1,13 @@
-<div class="sub-section sub-section-height-1" >
+<div class="sub-section sub-section-height" ng-class="{'last-section':$last}">
     <div class="widget" >
        <div ng-include="widget.instance.getTemplate()"></div>
     </div>
     <div class="sub-section-tools" ng-show="dashboard.allowEdit">
         <ul class="board-toolbar">
+            <li ng-click="pane.widgetMoveUp($index)" ng-show="pane.widgetCanMoveUp($index)"><i class="fa fa-chevron-up"></i></li>
+            <li ng-click="pane.widgetMoveDown($index)" ng-show="pane.widgetCanMoveDown($index)"><i class="fa fa-chevron-down"></i></li>
             <li ng-click="editWidget($parent.$index,$index)"><i class="fa fa-wrench"></i></li>
-            <li  ng-click="deleteWidget($parent.$index,$index)"><i class="fa fa-trash-o"></i></li>
+            <li ng-click="deleteWidget($parent.$index,$index)"><i class="fa fa-trash-o"></i></li>
         </ul>
     </div>
 </div>

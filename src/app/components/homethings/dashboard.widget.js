@@ -123,7 +123,7 @@ var gaugeWidget={
                 name: "value",
                 display_name: "Value",
                 type: "calculated",
-                default:'return 1;'
+                default:"return datasources['clock'].latestData.numeric_value"
             },
             {
                 name: "units",

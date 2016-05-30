@@ -21,10 +21,10 @@ angular.module('homeThingsIo')
     function(datasourcePluginsProvider){
         console.log('config from datasource');
         datasourcePluginsProvider.add(clock);
-        datasourcePluginsProvider.add(copy_clock);
-        datasourcePluginsProvider.add(weather_plugin);
-        datasourcePluginsProvider.add(json_plugin);
-        console.dir(datasourcePluginsProvider.all());
+        datasourcePluginsProvider.add(randomint);
+        //datasourcePluginsProvider.add(weather_plugin);
+        //datasourcePluginsProvider.add(json_plugin);
+        //console.dir(datasourcePluginsProvider.all());
     })  
 ;
 
@@ -70,8 +70,7 @@ var ClockDatasource = function (settings,startCallback, updateCallback,stopCallb
 			self.start();
 		}
         self.timer=new Timer($interval);
-        //console.dir(self.timer);
-		//start();
+
 	};
 
 var clock={
@@ -83,7 +82,9 @@ var clock={
             "display_name": "Refresh Every",
             "type": "integer",
             "suffix": "seconds",
-            "default_value": 1
+            "min":1,
+            "placeholder":"Refresh Every",
+            "default": 1
         }
     ],
     newInstance: function (settings, newInstanceCallback,startCallback, updateCallback,stopCallback,$interval) {
@@ -91,44 +92,80 @@ var clock={
     }
 };
 
-var RandomDatasource =  function (settings,startCallback, updateCallback,stopCallback) {
+var RandomIntDatasource =  function(settings,startCallback, updateCallback,stopCallback,$interval) {
     var self = this;
-		var currentSettings = settings;
-		
-       
-		this.stop = function() {
+    var currentSettings = settings;
+
+    self.timer=null;
+    
+    this.stop = function() {
+        self.timer.stop();
+        if(_.isFunction(stopCallback))
+            stopCallback();
+    }
+
+    this.start = function () {
+        self.stop();
+        self.timer.start(currentSettings.refresh * 1000,self.updateNow);
+        if(_.isFunction(startCallback))
+            startCallback();
+    }
+
+    this.updateNow = function () {
         
-            if(_.isFunction(stopCallback))
-                stopCallback();
-		}
 
-		this.start = function () {
-			self.stop();
-			
-            if(_.isFunction(startCallback))
-                startCallback();
-		}
+        var data = {
+            numeric_value:(Math.floor(Math.random() * (currentSettings.max -currentSettings.min +1)) +currentSettings.min).toString()
+        };
+        
+        updateCallback(data);
+    }
 
-		this.updateNow = function () {
-			
+    this.onDispose = function () {
+        self.stop();
+    }
 
-			var data = {
-				
-			};
-
-			updateCallback(data);
-		}
-
-		this.onDispose = function () {
-			self.stop();
-		}
-
-		this.onSettingsChanged = function (newSettings) {
-			currentSettings = newSettings;
-			self.start();
-		}
+    this.onSettingsChanged = function (newSettings) {
+        currentSettings = newSettings;
+        self.start();
+    }
+    self.timer=new Timer($interval);
        
-}
+};
+var randomint={
+    "type_name": "randomint",
+    "display_name": "Random Integer",
+    "settings": [
+        {
+            "name": "min",
+            "display_name": "Min Value",
+            "type": "integer",
+            "min":0,
+            "max":999999,
+            "placeholder":"Min Value",
+            "default": 0
+        },
+        {
+            "name": "max",
+            "display_name": "Max Value",
+            "type": "integer",
+            "min":0,
+            "max":999999,
+            "placeholder":"Max Value",
+            "default":100
+        },
+        {
+            "name": "refresh",
+            "display_name": "Refresh Every",
+            "type": "integer",
+            "suffix": "seconds",
+            "default": 1
+        }
+    ],
+    newInstance: function (settings, newInstanceCallback,startCallback, updateCallback,stopCallback,$interval) {
+        newInstanceCallback(new RandomIntDatasource(settings, startCallback,updateCallback,stopCallback,$interval));
+    }
+};
 
 var OpenWeatherMapDatasource = function (settings,startCallback, updateCallback,stopCallback) {
     var self = this;

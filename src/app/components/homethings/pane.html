@@ -1,4 +1,4 @@
- <div class="gridster gs_w" style="cursor: pointer; display: list-item;" ng-show="widgets.length>0 || dashboard.allowEdit==true">
+ <div class="gridster gs_w" pane-resize style="cursor: pointer; display: list-item;" ng-show="pane.widgets.length>0 || dashboard.allowEdit">
     <header>
         <h1 >{{pane.settings.title || 'TITLE'}}</h1>
         <ul class="board-toolbar pane-tools" style="display: block;" ng-show="dashboard.allowEdit">

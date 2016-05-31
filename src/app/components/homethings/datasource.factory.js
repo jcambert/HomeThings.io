@@ -409,7 +409,18 @@
         
     }
 })
-  
+.directive('paneResize',function($log){
+    return {
+        restrict:'A',
+        link:function($scope,$element,attrs){
+            $log.log('link pane resize');
+            angular.element($element).resize(function(){
+                $log.log('Element '+$element.id +' was resized');
+            });
+        }
+    }
+})
+
 .animation('.slide', function($log) {
   return {
     // make note that other events (like addClass/removeClass)
@@ -497,6 +508,7 @@
                         $log.log(ds[1] + ' datasource change'); 
                         $log.log(data.data);
                         $scope.value = data.data[ds[2]];
+                        $scope.$apply();
                     });
                 }else{
                     $log.log('calculate field as function');
@@ -653,6 +665,7 @@
         self.isRunning=false;
  
         function setType (datasource){
+            $log.log('try to set type to:'+datasource);
             if(datasource == undefined)return;
             type=datasource;
             $log.log('Datasource.type change to:');$log.log(datasource);
@@ -675,7 +688,7 @@
 
                         }, self.startCallback,self.updateCallback,self.stopCallback ,$interval);
                     }
-                if(datasourceType.external_scripts)
+                if(_.isArray(datasourceType.external_scripts) && datasourceType.external_scripts>0)
                 {
                     head.js(datasourceType.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
                 }

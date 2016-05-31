@@ -8,10 +8,10 @@
         var onConnectionLost =function(response){};
         var onMessageArrived = function(message){};
         var onConnect = function(){};
-        service.connect = function(host, port,clientId) {
+        service.connect = function(host, port,path,clientId) {
             
             $log.log("Try to connect to MQTT Broker " + host + " with user " + clientId);
-            client = new mqtt.Client(host,parseInt(port),clientId);
+            client = new mqtt.Client(host,parseInt(port),'/'+path,clientId);
 
             client.onConnectionLost = function(response){
                 if (response.errorCode !== 0)
@@ -24,11 +24,14 @@
                 onMessageArrived(message);
                 $log.log('Message arrived:'+message.payloadString);
             } 
-            client.connect({onSuccess:function(){
+            client.connect({
+                onSuccess:function(){
                  onConnect();
                  $log.log("Mqtt connection is open");
                  $rootScope.$broadcast("MQTT.CONNECTION_OPEN")
-            }});
+                },
+                mqttVersion:4
+            });
         }
 
 

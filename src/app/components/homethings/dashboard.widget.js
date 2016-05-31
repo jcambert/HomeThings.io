@@ -106,50 +106,52 @@ var GaugeWidget =function (settings,$templateCache) {
 };
 
 var gaugeWidget={
-        type_name: "gauge",
-        display_name: "Gauge",
-       /* "external_scripts" : [
-            "plugins/thirdparty/raphael.2.1.0.min.js",
-           "plugins/thirdparty/justgage.1.0.1.js"
-        ],*/
-        settings: [
-            {
-                name: "title",
-                display_name: "Title",
-                type: "text",
-                default:'gauge'
-            },
-            {
-                name: "value",
-                display_name: "Value",
-                type: "calculated",
-                default:"return datasources['clock'].latestData.numeric_value"
-            },
-            {
-                name: "units",
-                display_name: "Units",
-                type: "text",
-                default:'pct'
-            },
-            {
-                name: "min_value",
-                display_name: "Minimum",
-                type: "integer",
-                min:0,
-                max:100,
-                default: 0
-            },
-            {
-                name: "max_value",
-                display_name: "Maximum",
-                type: "integer",
-                min:0,
-                max:100,
-                default: 100
-            }
-        ],
-       newInstance: function (settings, newInstanceCallback,$templateCache) {
-            newInstanceCallback(new GaugeWidget(settings,$templateCache));
+    type_name: "gauge",
+    display_name: "Gauge",
+    /* "external_scripts" : [
+        "plugins/thirdparty/raphael.2.1.0.min.js",
+        "plugins/thirdparty/justgage.1.0.1.js"
+    ],*/
+    settings: [
+        {
+            
+            name: "title",
+            display_name: "Title",
+            type: "text",
+            default:'gauge'
+        },
+        {
+            name: "value",
+            display_name: "Value",
+            type: "calculated",
+            default:"return datasources['clock'].latestData.numeric_value"
+        },
+        {
+            name: "units",
+            display_name: "Units",
+            type: "text",
+            default:'pct'
+        },
+        {
+            name: "min_value",
+            display_name: "Minimum",
+            type: "integer",
+            min:0,
+            max:100,
+            default: 0
+        },
+        {
+            name: "max_value",
+            display_name: "Maximum",
+            type: "integer",
+            min:0,
+            max:100,
+            default: 100
         }
-    };
+    ],
+    newInstance: function (settings, newInstanceCallback,$templateCache) {
+        newInstanceCallback(new GaugeWidget(settings,$templateCache));
+    }
+};
+
 }(angular));

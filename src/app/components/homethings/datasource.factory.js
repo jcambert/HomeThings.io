@@ -13,11 +13,12 @@
           replace:true,
           template:'<div ng-transclude></div>',
          
-          controller: function($scope,$rootScope){
+          controller: function($scope,$rootScope,$localStorage){
               var self=$scope;
+              self.$storage = $localStorage.$default();
               self.dashboard = new Dashboard();
               
-              self.datasources = {};
+              self.datasources =self.$storage.datasources || {};
               self.panes = [];
               
            
@@ -27,7 +28,10 @@
                  self.dashboard.allowEdit=!data.toggle; 
               });
               
-              
+              self.saveDashboard = function(mode){
+                $log.log('Save to local Storage in ' + mode + ' mode');  
+                self.$storage.datasources=self.datasources;
+              };
               //$log.log('datasources plugins:');$log.log(datasourcePlugins.all());
               self.addDatasource = function(){
                  var modalInstance = $uibModal.open({
@@ -545,7 +549,27 @@
         }*/
     }    
 })
-
+.directive('saveDashboard',function(){
+    return {
+      restrict:'E',
+      replace:true,
+      templateUrl:'app/components/homethings/dashboard.save.html',
+      link:function($scope,element,attrs){
+          var target = element.find('label').first();
+          target.on('click',function(){
+                var siblingsShown = target.data('siblings-shown') || false;
+                if(!siblingsShown){
+                    target.siblings('label').fadeIn('slow');
+                }else{
+                    target.siblings('label').fadeOut('slow');
+                }
+                target.data('siblings-shown', !siblingsShown);
+          })
+            
+      }  
+    };
+    
+})
 .provider('datasourcePlugins',function(_){
     var self=this;
     self.plugins=[];
@@ -773,17 +797,7 @@
         setSettings: function(settings) {
             angular.extend(this.settings, settings);
         },
-        /*updateCallback:function(newData){
-            //theFreeboardModel.processDatasourceUpdate(self, newData);
-            
-            $log.log(newData);console.dir(this);
-            this.latestData=newData;
 
-            var now = new Date();
-            this.last_updated=now.toLocaleTimeString();
-            $rootScope.$broadcast('DATASOURCE.UPDATE',{object:this,data:newData});
-           // $rootScope.$digest();
-        },*/
         serialize : function()
         {
             return {
@@ -906,9 +920,6 @@
               self.disposeInstance();
               $log.log('widget set type');$log.log(widgetPlugins.has(type));$log.log(_.isFunction(type.newInstance));
               if ( widgetPlugins.has(type) && _.isFunction(type.newInstance)) {
-                 $log.log('toto');
-               
-
                 function finishLoad() {
                     $log.log('start finishLoad')
                     type.newInstance(self.settings, function (instance) {

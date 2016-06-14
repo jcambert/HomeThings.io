@@ -6,11 +6,7 @@
                 <div id="board-actions">
                     <ul class="board-toolbar vertical">
                         <li ng-click="loadDashboardFromLocalFile"><i id="full-screen-icon" class="icon-folder-open icon-white"></i><label id="full-screen">Load Dashboard</label></li>
-                        <li><i class="icon-download-alt icon-white"></i>
-                            <label ng-click="saveDashboardClicked()">Save Dashboard</label>
-                            <label style="display: none;" ng-click="saveDashboard('pretty')">[Pretty]</label>
-                            <label style="display: none;" ng-click="saveDashboard('minified')">[Minified]</label>
-                        </li>
+                        <save-dashboard></save-dashboard>
                         <li id="add-pane" ng-click="addPane()"><i class="icon-plus icon-white"></i><label>Add Pane</label></li>
                     </ul>
                 </div>

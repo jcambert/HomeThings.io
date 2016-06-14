@@ -13,11 +13,12 @@
           replace:true,
           template:'<div ng-transclude></div>',
          
-          controller: function($scope,$rootScope){
+          controller: function($scope,$rootScope, $localStorage){
               var self=$scope;
+              self.$storage = $localStorage.$default();
               self.dashboard = new Dashboard();
               
-              self.datasources = {};
+              self.datasources =self.$storage.datasources || {};
               self.panes = [];
               
            
@@ -27,6 +28,9 @@
                  self.dashboard.allowEdit=!data.toggle; 
               });
               
+              self.saveDashboard = function(mode){
+                  self.$storage.datasources = self.datasources;
+              };
               
               //$log.log('datasources plugins:');$log.log(datasourcePlugins.all());
               self.addDatasource = function(){
@@ -544,6 +548,28 @@
            
         }*/
     }    
+})
+
+.directive('saveDashboard',function(){
+    return{
+        restrict:'E',
+        replace:true,
+        templateUrl:'',
+        link:function($scope,element,attrs){
+            var target = angular.element(element).find('label').first();
+            target.on('click',function(){
+                var siblingsShown = target.data('siblings-shown') || false;
+                if(!siblingsShown){
+                    $(event.currentTarget).siblings('label').fadeIn('slow');
+                }else{
+                    $(event.currentTarget).siblings('label').fadeOut('slow');
+                }
+                target.data('siblings-shown', !siblingsShown);
+            });
+            
+        }
+    }
+    
 })
 
 .provider('datasourcePlugins',function(_){

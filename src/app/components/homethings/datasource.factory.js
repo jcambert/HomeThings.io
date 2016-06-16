@@ -23,10 +23,10 @@
               
            
               
-              self.$on("#main-header_toggle",function(event,data){
-                 
+              /*self.$on("#main-header_toggle",function(event,data){
+                  alert('titi');
                  self.dashboard.allowEdit=!data.toggle; 
-              });
+              });*/
               
               self.saveDashboard = function(mode){
                   self.$storage.datasources = self.datasources;
@@ -386,16 +386,27 @@
           
       }
   })
-  .directive('dashboardToggleHeader',function(){
+  .directive('dashboardToggleHeader',function($log){
       return{
           restrict:'E',
           replace:true,
          // template:'<div id="toggle-header" slide-toggle="#main-header" toggle-value="false" expanded="false" ng-show="dashboard.allowEdit==false"><i id="toggle-header-icon" class="fa fa-cogs" aria-hidden="true"></i></div>'
-          template:'<div id="toggle-header" ng-show="!dashboard.allowEdit" ng-click="dashboard.allowEdit=true"><i id="toggle-header-icon" class="fa fa-cogs" aria-hidden="true"></i></div>'
+          template:'<div id="toggle-header" ng-show="!dashboard.allowEdit" ng-click="dashboard.allowEdit=true"><i id="toggle-header-icon" class="fa fa-cogs" aria-hidden="true"></i></div>',
+          link:function($scope,element,attrs){
+              $log.log('Header toggler:');$log.log(attrs.data);
+              $scope.toolboxAction = function(){
+                  return 'app/components/homethings/dashboard.header.'+attrs.data+'.action.html';
+              };
+              $scope.toolboxContent = function(){
+                  return 'app/components/homethings/dashboard.header.'+attrs.data+'.content.html';
+              }
+          }
+          
           
       }
   })
 
+ 
  .directive('dashboardContent',function(){
     return{
         restrict:'E',
@@ -554,7 +565,7 @@
     return{
         restrict:'E',
         replace:true,
-        templateUrl:'',
+        templateUrl:'app/components/homethings/dashboard.save.html',
         link:function($scope,element,attrs){
             var target = angular.element(element).find('label').first();
             target.on('click',function(){

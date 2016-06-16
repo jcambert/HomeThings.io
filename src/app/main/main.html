@@ -5,7 +5,10 @@
           <div class ="row"> 
               <div class="col-md-12">
                    <dashboard-header class="slide"  ng-show="dashboard.allowEdit"></dashboard-header>
-                   <dashboard-toggle-header ></dashboard-toggle-header>
+                   <div id="toggle-section">
+                    <dashboard-toggle-header data="datasource"></dashboard-toggle-header>
+                    <dashboard-toggle-header data="command"></dashboard-toggle-header>
+                   </div>
               </div>
               <div class="col-md-12">
                 <div gridster class="grid-stack grid1" options="options" >

@@ -13,20 +13,35 @@
           replace:true,
           template:'<div ng-transclude></div>',
          
-          controller: function($scope,$rootScope, $localStorage){
+          controller: function($scope,$rootScope, $localStorage,$log){
               var self=$scope;
               self.$storage = $localStorage.$default();
               self.dashboard = new Dashboard();
               
               self.datasources =self.$storage.datasources || {};
               self.panes = [];
-              
+              self.currentCommand = undefined;
            
               
               /*self.$on("#main-header_toggle",function(event,data){
                   alert('titi');
                  self.dashboard.allowEdit=!data.toggle; 
               });*/
+              
+              self.executeCommand = function(command){
+                  
+                  self.dashboard.allowEdit = true;
+                  self.currentCommand=command;
+              }
+              self.toolboxAction = function(){
+                  if( !self.dashboard.allowEdit) return;
+                  $log.log('get toolbox action:'+self.currentCommand);
+                  return 'app/components/homethings/dashboard.header.'+self.currentCommand+'.action.html';
+              };
+              self.toolboxContent = function(){
+                  if( !self.dashboard.allowEdit) return;
+                  return 'app/components/homethings/dashboard.header.'+self.currentCommand+'.content.html';
+              }
               
               self.saveDashboard = function(mode){
                   self.$storage.datasources = self.datasources;
@@ -210,7 +225,7 @@
                 self.panes[indexPane].deleteWidget(indexWidget);
             }
              self.addPane();
-             self.dashboard.allowEdit = true;
+             self.dashboard.allowEdit = false;
           /* _.forEach(widgetPlugins.all(),function(widget){
                widget.newInstance({},function(instance){
                    self.panes[0].addWidget(instance); 
@@ -390,16 +405,23 @@
       return{
           restrict:'E',
           replace:true,
-         // template:'<div id="toggle-header" slide-toggle="#main-header" toggle-value="false" expanded="false" ng-show="dashboard.allowEdit==false"><i id="toggle-header-icon" class="fa fa-cogs" aria-hidden="true"></i></div>'
-          template:'<div id="toggle-header" ng-show="!dashboard.allowEdit" ng-click="dashboard.allowEdit=true"><i id="toggle-header-icon" class="fa fa-cogs" aria-hidden="true"></i></div>',
+         
+          template:'<div class="toggle-header" ng-show="!dashboard.allowEdit" ><i class="toggle-header-icon fa" aria-hidden="true"></i></div>',
           link:function($scope,element,attrs){
-              $log.log('Header toggler:');$log.log(attrs.data);
-              $scope.toolboxAction = function(){
-                  return 'app/components/homethings/dashboard.header.'+attrs.data+'.action.html';
+              $log.log('Header toggler:');$log.log(attrs.command);
+             angular.element(element).click(function(e){
+                  e.preventDefault();
+                  $scope.executeCommand(attrs.command);
+                  $scope.$apply();
+              });
+              element.find('i').addClass('fa-'+attrs.icon);
+              /*$scope.toolboxAction = function(){
+                  return 'app/components/homethings/dashboard.header.'+attrs.command+'.action.html';
               };
               $scope.toolboxContent = function(){
-                  return 'app/components/homethings/dashboard.header.'+attrs.data+'.content.html';
+                  return 'app/components/homethings/dashboard.header.'+attrs.command+'.content.html';
               }
+              $scope.icon=attrs.icon;*/
           }
           
           

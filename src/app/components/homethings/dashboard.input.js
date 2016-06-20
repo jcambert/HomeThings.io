@@ -1,4 +1,4 @@
-(function (angular,_,$) {
+(function (angular,_) {
 angular.module('homeThingsIo')
 .config(function(pluginsProvider,PluginsType){
     pluginsProvider.add(mqtt,PluginsType.INPUT);  
@@ -51,4 +51,4 @@ var mqtt={
     }
 
 }
-}(angular,_,$));
+}(angular,_));

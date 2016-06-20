@@ -1,12 +1,12 @@
 (function(angular,Raphael) {
   'use strict';
 var percentColors = ["#a9d70b", "#f9c802", "#ff0000"];
-function getStyle(oElm, strCssRule)
+function getStyle(doc,oElm, strCssRule)
 {
 	var strValue = "";
-	if(document.defaultView && document.defaultView.getComputedStyle)
+	if(doc.defaultView && doc.defaultView.getComputedStyle)
 	{
-		strValue = document.defaultView.getComputedStyle(oElm, "").getPropertyValue(strCssRule);
+		strValue = doc.defaultView.getComputedStyle(oElm, "").getPropertyValue(strCssRule);
 	}
 	else if(oElm.currentStyle)
 	{
@@ -30,7 +30,7 @@ var ie = (function()
 
 }());
 
-function onCreateElementNsReady(func)
+function onCreateElementNsReady(func,$timeout)
 {
 	if(document.createElementNS != undefined)
 	{
@@ -38,9 +38,9 @@ function onCreateElementNsReady(func)
 	}
 	else
 	{
-		setTimeout(function()
+		$timeout(function()
 		{
-			onCreateElementNsReady(func);
+			onCreateElementNsReady(func,$timeout);
 		}, 100);
 	}
 }
@@ -62,14 +62,14 @@ var getColorForPercentage = function(pct, col, grad)
 	}
 
 	if(pct == 0) return 'rgb(' + [colors[0].color.r, colors[0].color.g, colors[0].color.b].join(',') + ')';
-	for(var i = 0; i < colors.length; i++)
+	for(var ii = 0; ii < colors.length; i++)
 	{
-		if(pct <= colors[i].pct)
+		if(pct <= colors[ii].pct)
 		{
 			if(grad == true)
 			{
-				var lower = colors[i - 1];
-				var upper = colors[i];
+				var lower = colors[ii - 1];
+				var upper = colors[ii];
 				var range = upper.pct - lower.pct;
 				var rangePct = (pct - lower.pct) / range;
 				var pctLower = 1 - rangePct;
@@ -83,17 +83,17 @@ var getColorForPercentage = function(pct, col, grad)
 			}
 			else
 			{
-				return 'rgb(' + [colors[i].color.r, colors[i].color.g, colors[i].color.b].join(',') + ')';
+				return 'rgb(' + [colors[ii].color.r, colors[ii].color.g, colors[ii].color.b].join(',') + ')';
 			}
 		}
 	}
 }
-
+/*
 function getRandomInt(min, max)
 {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
+*/
 function cutHex(str)
 {
 	return (str.charAt(0) == "#") ? str.substring(1, 7) : str
@@ -102,7 +102,7 @@ function cutHex(str)
 
   angular
   .module('ngGauge',[])
-  .directive('gauge',function($log){
+  .directive('gauge',function($log,$document,$timeout){
       return{
           restrict:'E',
           replace:true,
@@ -120,7 +120,7 @@ function cutHex(str)
           link:function($scope,$element,attr){
             $log.log('create new gauge');
             $log.log($element);
-            $scope.gauge=new Gauge($element,$scope.settings);
+            $scope.gauge=new Gauge($element,$scope.settings,$document,$timeout);
             
            
             
@@ -130,10 +130,10 @@ function cutHex(str)
       }
   });
   
-  var Gauge = function($element,$settings){
-      console.dir($element);
-      console.dir($settings);
-      if(!document.getElementById($element[0].id))
+  var Gauge = function($element,$settings,$document,$timeout){
+      
+      this.document=$document;
+      if(!$document.getElementById($element[0].id))
         {
             alert("No element with id: \"" + $element[0].id + "\" found!");
             return false;
@@ -178,8 +178,8 @@ function cutHex(str)
         // canvas dimensions
         //var canvasW = document.getElementById(this.config.id).clientWidth;
         //var canvasH = document.getElementById(this.config.id).clientHeight;
-        var canvasW = getStyle(document.getElementById(this.config.id), "width").slice(0, -2) * 1;
-        var canvasH = getStyle(document.getElementById(this.config.id), "height").slice(0, -2) * 1;
+        var canvasW =Number( getStyle($document,$document.getElementById(this.config.id), "width").slice(0, -2)) * 1;
+        var canvasH =Number( getStyle($document,$document.getElementById(this.config.id), "height").slice(0, -2)) * 1;
 
         // widget dimensions
         var widgetW, widgetH;
@@ -331,7 +331,7 @@ function cutHex(str)
             onCreateElementNsReady(function()
             {
                 this.generateShadow();
-            });
+            },$timeout);
         }
         else
         {
@@ -374,24 +374,24 @@ Gauge.prototype.update = function(val)
 };
 Gauge.prototype.generateShadow = function(svg, defs){
 	// FILTER
-	var gaussFilter = document.createElementNS(svg, "filter");
+	var gaussFilter = this.document.createElementNS(svg, "filter");
 	gaussFilter.setAttribute("id", this.config.id + "-inner-shadow");
 	defs.appendChild(gaussFilter);
 
 	// offset
-	var feOffset = document.createElementNS(svg, "feOffset");
+	var feOffset = this.document.createElementNS(svg, "feOffset");
 	feOffset.setAttribute("dx", 0);
 	feOffset.setAttribute("dy", this.config.shadowVerticalOffset);
 	gaussFilter.appendChild(feOffset);
 
 	// blur
-	var feGaussianBlur = document.createElementNS(svg, "feGaussianBlur");
+	var feGaussianBlur = this.document.createElementNS(svg, "feGaussianBlur");
 	feGaussianBlur.setAttribute("result", "offset-blur");
 	feGaussianBlur.setAttribute("stdDeviation", this.config.shadowSize);
 	gaussFilter.appendChild(feGaussianBlur);
 
 	// composite 1
-	var feComposite1 = document.createElementNS(svg, "feComposite");
+	var feComposite1 = this.document.createElementNS(svg, "feComposite");
 	feComposite1.setAttribute("operator", "out");
 	feComposite1.setAttribute("in", "SourceGraphic");
 	feComposite1.setAttribute("in2", "offset-blur");
@@ -399,14 +399,14 @@ Gauge.prototype.generateShadow = function(svg, defs){
 	gaussFilter.appendChild(feComposite1);
 
 	// flood
-	var feFlood = document.createElementNS(svg, "feFlood");
+	var feFlood = this.document.createElementNS(svg, "feFlood");
 	feFlood.setAttribute("flood-color", "black");
 	feFlood.setAttribute("flood-opacity", this.config.shadowOpacity);
 	feFlood.setAttribute("result", "color");
 	gaussFilter.appendChild(feFlood);
 
 	// composite 2
-	var feComposite2 = document.createElementNS(svg, "feComposite");
+	var feComposite2 = this.document.createElementNS(svg, "feComposite");
 	feComposite2.setAttribute("operator", "in");
 	feComposite2.setAttribute("in", "color");
 	feComposite2.setAttribute("in2", "inverse");
@@ -414,7 +414,7 @@ Gauge.prototype.generateShadow = function(svg, defs){
 	gaussFilter.appendChild(feComposite2);
 
 	// composite 3
-	var feComposite3 = document.createElementNS(svg, "feComposite");
+	var feComposite3 = this.document.createElementNS(svg, "feComposite");
 	feComposite3.setAttribute("operator", "over");
 	feComposite3.setAttribute("in", "shadow");
 	feComposite3.setAttribute("in2", "SourceGraphic");

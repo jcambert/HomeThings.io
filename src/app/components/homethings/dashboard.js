@@ -852,7 +852,7 @@
   })
   
   
-  .factory('Plugin',function($log,$interval,plugins,PluginsType,PluginState){
+  .factory('Plugin',function($log,$interval,$rootScope,plugins,PluginsType,PluginState){
       function Plugin(settings,type,pluginType){
           var self = this;
           self.instance = undefined;
@@ -892,13 +892,74 @@
                 }
             } 
           }
+          self.disposeInstance=function(){
+                if(!_.isUndefined(this.instance))
+                {
+                    if(_.isFunction(this.instance.onDispose))
+                    {
+                        this.instance.onDispose();
+                    }
+
+                    this.instance = undefined;
+                }
+            };
+            
+          self.startCallback = function(){
+                self.isRunning = true;
+                $log.log(self.settings.name+ " is started in callback");
+            };
+            
+            self.updateCallback=function(newData){
+                self.latestData=newData;
+                var now = new Date();
+                self.last_updated=now.toLocaleTimeString();
+                $rootScope.$broadcast('DATASOURCE.'+self.settings.name.toUpperCase(),{object:self,data:newData});
+            };
+            
+            self.stopCallback = function(){
+                self.isRunning = false;
+                $log.log(self.settings.name+ " is stopped in callback");
+            }
+            
+            self.start = function(){
+                if(_.isUndefined(self.instance))return;
+                if(_.isFunction(self.instance.start)){
+                    self.instance.start();
+                    self.settings.state = PluginState.RUNNING;
+                    $log.log(self.settings.name +' was running');
+                }
+            };
+            
+            self.stop = function(){
+                if(_.isUndefined(self.instance))return;
+                if(_.isFunction(self.instance.stop)){
+                    self.instance.stop();
+                    self.settings.state = PluginState.PAUSED;
+                    $log.log(self.settings.name +' was stopped');
+                }
+            };
+            
+            
+            self.edit = function(callback){
+                if(_.isUndefined(self.instance))return;
+                var tmprunning=self.isRunning;
+                self.stop();
+                callback().then(function(){
+                    if(tmprunning)
+                        self.start();
+                });
+            
+            }
+        
           if (settings) {
             this.setSettings(settings);
           }
           setType(type);
       }
       
+        
       Plugin.prototype = {
+        
         setSettings: function(settings) {
             angular.extend(this.settings, settings);
         },
@@ -917,12 +978,33 @@
             this.name=object.name;
             this.type=object.type;
         },
+         updateNow : function()
+        {
+            if(!_.isUndefined(this.instance) && _.isFunction(this.instance.updateNow))
+            {
+                this.instance.updateNow();
+            }
+        },
+        dispose : function()
+        {
+            this.disposeInstance();
+        }
       }
       
       return Plugin;
   })
-  
+   .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,plugins,PluginsType,PluginState,_,Plugin){
+    function Datasource(settings,type,pluginType) {
+        Plugin.call(this,settings,type,pluginType)
+    }
+    Datasource.prototype = Object.create(Plugin.prototype,{
+        
+    });
+    
+    return Datasource;
+ })
   /** DatasourceModel */
+  /*
   .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,plugins,PluginsType,PluginState,_){
     function Datasource(settings,type) {
         var self = this;
@@ -1077,7 +1159,7 @@
         }
     };
     return Datasource;
-  })
+  })*/
   
   /** PaneModel */
   .factory('Pane',function($log){

@@ -9,7 +9,7 @@
   function config($logProvider, toastrConfig) {
     // Enable log
     $logProvider.debugEnabled(true);
-
+    console.log('start config from index');
     // Set options third-party lib
     toastrConfig.allowHtml = true;
     toastrConfig.timeOut = 3000;
@@ -17,7 +17,7 @@
     toastrConfig.preventDuplicates = true;
     toastrConfig.progressBar = true;
     
-   console.log('config from config');
+   console.log('end config from index');
   }
 
 })(angular);

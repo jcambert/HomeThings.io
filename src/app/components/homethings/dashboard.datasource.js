@@ -18,14 +18,15 @@ Timer.prototype = {
 };
 angular.module('homeThingsIo')
 .config(
-    function(datasourcePluginsProvider){
-        console.log('config from datasource');
-        datasourcePluginsProvider.add(clock);
-        datasourcePluginsProvider.add(randomint);
-        datasourcePluginsProvider.add(mqtt);
+    function(pluginsProvider,PluginsType){
+        console.log('start config from datasource');
+        pluginsProvider.add(clock,PluginsType.DATASOURCE);
+        pluginsProvider.add(randomint,PluginsType.DATASOURCE);
+        pluginsProvider.add(mqtt,PluginsType.DATASOURCE);
         //datasourcePluginsProvider.add(weather_plugin);
         //datasourcePluginsProvider.add(json_plugin);
         //console.dir(datasourcePluginsProvider.all());
+         console.log('end config from datasource');
     })  
 ;
 
@@ -594,6 +595,12 @@ var mqtt ={
             	"type"        : "text",
             	"default"     : "",
             	"required"    : false
+            },
+            {
+            	"name"        : "shared",
+            	"display_name": "Partagé",
+            	"type"        : "boolean",
+            	"default"     : "true"
             },
             {
             	"name"        : "topic",

@@ -5,46 +5,70 @@
   .constant('_',_)
   .constant('PluginState',{CREATED:0,INSTANCIED:1,PAUSED:2,RUNNING:3})
   .constant('FormState',{ADD:0,MODIFY:1})
-  .controller('dashboardController',function(){})
-  .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboard,Datasource,Pane,Widget,datasourcePlugins,widgetPlugins,FormState){
+  .constant('DashboardPanesIndex',{INPUTS:'inputs',OUTPUTS:'outputs'})
+  .constant('PluginsType',{DATASOURCE:0,WIDGET:1,INPUT:2,OUTPUT:3})
+  .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboard,Datasource,plugins,PluginsType,FormState,DashboardPanesIndex){
+      
       return{
           restrict:'E',
           transclude:true,
           replace:true,
           template:'<div ng-transclude></div>',
-         
-          controller: function($scope,$rootScope, $localStorage,$log){
+          controller: function($scope,$rootScope, $localStorage){
+              $log.log("Create Dashboard UI Controller");
               var self=$scope;
               self.$storage = $localStorage.$default();
-              self.dashboard = new Dashboard();
+              
+              self.dashboards={};
+              self.dashboards[DashboardPanesIndex.INPUTS]=self.$storage.dashboardInputs || new Dashboard(DashboardPanesIndex.INPUTS,PluginsType.INPUT);
+              self.dashboards[DashboardPanesIndex.OUTPUTS]=self.$storage.dashboardOutputs ||  new Dashboard(DashboardPanesIndex.OUTPUTS,PluginsType.OUTPUT);
+              
+              self.dashboard = undefined;
               
               self.datasources =self.$storage.datasources || {};
-              self.panes = [];
-              self.currentCommand = undefined;
-           
-              
-              /*self.$on("#main-header_toggle",function(event,data){
-                  alert('titi');
-                 self.dashboard.allowEdit=!data.toggle; 
-              });*/
-              
-              self.executeCommand = function(command){
-                  
+
+              self.showSettings = function(){
                   self.dashboard.allowEdit = true;
-                  self.currentCommand=command;
+              } 
+              self.changeDashboardTo = function(dashboardname){
+                  $log.log(self.dashboards);
+                  $log.log('want change dashboard to:'+dashboardname);
+                  self.dashboard=self.dashboards[dashboardname];
+                  $log.log('Current dashboard is '+self.dashboard.name);
+                 
               }
-              self.toolboxAction = function(){
+              self.dashboardAction = function(){
                   if( !self.dashboard.allowEdit) return;
-                  $log.log('get toolbox action:'+self.currentCommand);
-                  return 'app/components/homethings/dashboard.header.'+self.currentCommand+'.action.html';
+                  return 'app/components/homethings/dashboard.header.'+self.dashboard.name+'.action.html';
               };
-              self.toolboxContent = function(){
+              self.dashboardContent = function(){
                   if( !self.dashboard.allowEdit) return;
-                  return 'app/components/homethings/dashboard.header.'+self.currentCommand+'.content.html';
+                  return 'app/components/homethings/dashboard.header.'+self.dashboard.name+'.content.html';
               }
               
               self.saveDashboard = function(mode){
                   self.$storage.datasources = self.datasources;
+              };
+              
+              self.wantAddPlugin = function(){
+                  var modalInstance = $uibModal.open({
+                    animation: true,
+                    templateUrl: 'app/components/homethings/'+self.dashboard.name+'.modal.html',
+                    controller: self.dashboard.name + 'ModalController',
+                    size: 'lg',
+                    resolve: {
+                        options:function() {
+                            return{
+                                mode:FormState.ADD
+                                }
+                            }
+                        }
+                    });
+                    modalInstance.result.then(function (result) {
+                        self.dashboard.addPlugin(new Plugin(result.plugin,result.type,self.dashboard.pluginType));
+                    }, function () {
+                        $log.info('Modal dismissed at: ' + new Date());
+                    });
               };
               
               //$log.log('datasources plugins:');$log.log(datasourcePlugins.all());
@@ -74,6 +98,32 @@
                   });
 
               };
+              
+              self.wantModifyPlugin = function(index){
+                  var plugin = self.dashboard.getPlugin(index);
+                  
+                  var modalInstance = $uibModal.open({
+                    animation: true,
+                    templateUrl: 'app/components/homethings/'+self.dashboard.name+'.modal.html',
+                    controller:  self.dashboard.name+'ModalController',
+                    size: 'lg',
+                    resolve: {
+                        options:function() {
+                            return{
+                                plugin: plugin,
+                                mode: FormState.MODIFY
+                                }
+                            }
+                        }
+                    });
+                    
+                     modalInstance.result.then(function (result) {
+                        $log.log(result);
+                        plugin.setSettings(result.plugin);
+                    }, function () {
+                        $log.info('Modal dismissed at: ' + new Date());
+                    });
+              }
             self.modifyDatasource = function(name){
                 var ds=self.datasources[name];
                 $log.log(ds);$log.log(name);
@@ -126,18 +176,21 @@
             };
             
             self.addPane = function(){
-                self.panes.push(new Pane({x:0,y:0,width:2,height:1}));
-                $log.log(self.panes);
+                self.dashboard.createPane();
+               // self.panes.push(new Pane({x:0,y:0,width:2,height:1}));
+                $log.log(self.dashboard.panes);
             };
            
             self.deletePane = function(index){
-                self.panes[index].deleteWidgets();
-                self.panes.splice(index,1);
+                self.dashboard.deletePane(index);
+                
+                //self.panes[index].deleteWidgets();
+                //self.panes.splice(index,1);
             };
             
             self.editPane = function(index){
                 var settings=angular.copy(self.panes[index].settings);
-                
+                var pane=self.dashboard.panes[index];
                 var modalInstance = $uibModal.open({
                     animation: true,
                     templateUrl: 'app/components/homethings/pane.modal.html',
@@ -155,7 +208,7 @@
 
 
                   modalInstance.result.then(function (settings) {
-                        self.panes[index].settings=settings;
+                        pane.settings=settings;
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
@@ -163,8 +216,8 @@
             
             
             self.addWidget = function(indexPane){
-                $log.log('add widget to pane '+indexPane);
-                $log.log(self.panes[indexPane]);
+              //  $log.log('add widget to pane '+indexPane);
+              //  $log.log(self.dashboard.panes[indexPane]);
                 var modalInstance = $uibModal.open({
                     animation: true,
                     templateUrl: 'app/components/homethings/widget.modal.html',
@@ -185,8 +238,8 @@
                         $log.log(result);
                         var widget=new Widget(result.plugin,result.type);
                         //widget.setType(_.find(widgetPlugins.all(),function(widget){return selectedItem.type_name == widget.type_name}));
-                        self.panes[indexPane].addWidget(widget);
-                        $log.log(self.panes);
+                        self.dashboard.panes[indexPane].addWidget(widget);
+                        //$log.log(self.panes);
                   }, function () {
                     $log.info('Modal dismissed at: ' + new Date());
                   });
@@ -194,7 +247,7 @@
             
             self.editWidget = function(indexPane,indexWidget){
                 $log.log('edit widget ' + indexWidget + ' of pane '+indexPane );
-                var widget=self.panes[indexPane].getWidget(indexWidget);
+                var widget=self.dashboard.panes[indexPane].getWidget(indexWidget);
                 
                 
                 var modalInstance = $uibModal.open({
@@ -224,8 +277,9 @@
                 $log.log('delete widget ' + indexWidget + ' of pane '+indexPane );
                 self.panes[indexPane].deleteWidget(indexWidget);
             }
-             self.addPane();
-             self.dashboard.allowEdit = false;
+            self.changeDashboardTo('inputs');
+            self.addPane();
+            //self.dashboard.allowEdit = false;
           /* _.forEach(widgetPlugins.all(),function(widget){
                widget.newInstance({},function(instance){
                    self.panes[0].addWidget(instance); 
@@ -240,9 +294,9 @@
   })
   
    
-  .controller('DatasourceModalController',function($log,$scope,$uibModalInstance,datasourcePlugins,FormState,PluginState,options){
+  .controller('DatasourceModalController',function($log,$scope,$uibModalInstance,plugins/*datasourcePlugins*/,PluginsType,FormState,PluginState,options){
      var self=$scope;
-     self.datasources=datasourcePlugins.all();
+     self.datasources=plugins.all(PluginsType.DATASOURCE);
      self.datasource = options.datasource;
      
      self.mode = options.mode;
@@ -250,7 +304,7 @@
          item:{}
      };
      if(self.mode == FormState.MODIFY){
-        self.selected.item = datasourcePlugins.get(self.datasource.settings.type);
+        self.selected.item = plugins.get(self.datasource.settings.type,PluginsType.DATASOURCE);
         $log.log(self.datasource);
         $log.log(self.selected.item);
         self.plugin=angular.copy(self.datasource.settings);
@@ -329,10 +383,10 @@
     };
   })
   
-.controller('WidgetModalController',function($log,$scope,$uibModalInstance,FormState,PluginState,widgetPlugins,options){
+.controller('WidgetModalController',function($log,$scope,$uibModalInstance,FormState,PluginState,plugins/*widgetPlugins*/,PluginsType,options){
     var self = $scope;
     self.mode = options.mode;
-    self.widgets = widgetPlugins.all();
+    self.widgets = plugins.all(PluginsType.WIDGET);
     self.widget = options.widget;
     self.plugin= {};
     self.selected={
@@ -340,7 +394,7 @@
     };
 
     if(self.mode == FormState.MODIFY){
-        self.selected.item = widgetPlugins.get(self.widget.settings.type);
+        self.selected.item = plugins.get(self.widget.settings.type,PluginsType.WIDGET);
         
         self.plugin=angular.copy(self.widget.settings);
      }
@@ -393,7 +447,7 @@
     self.createPlugin();
   })
   
-  .directive('dashboardHeader',function($animate){
+  .directive('dashboardHeader',function(){
       return{
           restrict:'E',
           replace:true,
@@ -401,17 +455,17 @@
           
       }
   })
-  .directive('dashboardToggleHeader',function($log){
+  .directive('dashboardPane',function($log){
       return{
           restrict:'E',
           replace:true,
          
-          template:'<div class="toggle-header" ng-show="!dashboard.allowEdit" ><i class="toggle-header-icon fa" aria-hidden="true"></i></div>',
+          template:'<div  class="toggle-header"><i class="fa" aria-hidden="true"></i></div>',
           link:function($scope,element,attrs){
               $log.log('Header toggler:');$log.log(attrs.command);
              angular.element(element).click(function(e){
                   e.preventDefault();
-                  $scope.executeCommand(attrs.command);
+                  $scope.changeDashboardTo(attrs.command);
                   $scope.$apply();
               });
               element.find('i').addClass('fa-'+attrs.icon);
@@ -428,16 +482,32 @@
       }
   })
 
+.directive('dashboardSettings',function($log){
+    return{
+        restrict:'E',
+        replace:true,
+        template:'<div  class="toggle-header" ng-show="!dashboard.allowEdit"><i class="fa fa-cogs" aria-hidden="true"></i></div>',
+        link:function($scope,element,attrs){
+             angular.element(element).click(function(e){
+                  e.preventDefault();
+                  $log.log('Show settings');
+                  $scope.showSettings();
+                  $scope.$apply();
+              });
+        }
+        
+    };
+})
  
- .directive('dashboardContent',function(){
+ /*.directive('dashboardContent',function(){
     return{
         restrict:'E',
         replace:true,
         transclude:true,
         template:'<div ng-transclude></div>'
         
-    }
-  })
+    };
+  })*/
 .directive('calculatedField',function(){
     return{
         restrict:'E',
@@ -605,7 +675,7 @@
     
 })
 
-.provider('datasourcePlugins',function(_){
+/*.provider('datasourcePlugins',function(_){
     var self=this;
     self.plugins=[];
     return{
@@ -638,8 +708,47 @@
           
       };
       
-  })
+  })*/
    
+  .provider('plugins',function(_){
+      var self=this;
+      self.plugins={};
+      self._check = function(type){
+          if( !(type in self.plugins))
+                self.plugins[type]=[];
+      }
+      return{
+          add:function(plugin,type){
+            self._check(type);
+            self.plugins[type].push(plugin);
+          },
+          all:function(type){
+            self._check(type);
+            return self.plugins[type];
+          },
+          $get:function(){
+              return{
+                    add:function(plugin,type){
+                        self._check(type);
+                        self.plugins[type].push(plugin);
+                    },
+                    all:function(type){
+                        self._check(type);
+                        return self.plugins[type];
+                    },
+                    get:function(name,type){
+                        self._check(type);
+                        return _.find(self.plugins[type],function(plugin){return plugin.type_name==name;});
+                    },
+                    has:function(plugin,type){
+                        self._check(type);
+                        return _.find(self.plugins,function(plugin){return plugin.type_name==plugin.type_name;})!= undefined
+                    }
+              }
+              
+          }
+      }
+  })
   .service('propertyChanged',function($window,$log,_){
       var self=this;
       
@@ -670,47 +779,151 @@
   })
   
   /** FreeboardModel */
-  .factory('Dashboard',function($log,propertyChanged){
-      function Dashboard(){
+  .factory('Dashboard',function($log,Pane){
+      function Dashboard(name,pluginType){
+          $log.log('Create new Dashboard :'+name);
           var self=this;
-          
+          self.name=name;
+          self.pluginType;
           self.version = 0;
           self.isEditing = false;
           self.allowEdit = false;
-          self.plugins = [];
-          self.datasources = [];
           self.panes = [];
-          self.datasourceData = {};
-          self._datasourceTypes = {};
-          self._widgetTypes = {};
+          self.plugins = [];
       }
       
       Dashboard.prototype={
-          processDatasourceUpdate:function(datasource,newData){},
-          addPluginSource:function(pluginSource){},
-          serialize:function(){},
+          processDatasourceUpdate:function(datasource,newData){
+              
+          },
+          addPlugin:function(plugin){
+              self.plugins.push(plugin);
+          },
+          getPlugin:function(index){
+            return self.plugins[index];  
+          },
+          serialize:function(){
+              
+          },
           
-          deserialize : function(object, finishedCallback){},
-          clearDashboard : function(){ },
-          loadDashboard : function(dashboardData, callback){},
-          loadDashboardFromLocalFile : function(){},
-          saveDashboardClicked:function(){},
+          deserialize : function(object, finishedCallback){
+              
+          },
+          clearDashboard : function(){
+              _.forEach(self.panes,function(pane,index){
+                 self.deleteWidgets(index);
+              });
+              self.panes.splice(0,self.panes.length);
+           },
+          loadDashboard : function(dashboardData, callback){
+              
+          },
+          loadDashboardFromLocalFile : function(){
+              
+          },
+          saveDashboardClicked:function(){
+              
+          },
           saveDashboard: function(_thisref, event){},
-          addDatasource : function(datasource){},
-          deleteDatasource :  function(datasource){},
-          createPane : function(){},
-          deletePane : function(pane){},
-          deleteWidget : function(widget){},
-          setEditing : function(editing, animate){},
-          toggleEditing : function(){}
+          
+          createPane : function(){
+              this.panes.push(new Pane());
+          },
+          deletePane : function(index){
+              this.panes[index].deleteWidgets();
+              this.panes.splice(index,1);
+          },
+          deleteWidget : function(indexPane,indexWidget){
+              this.panes[indexPane].deleteWidget(indexWidget);
+          },
+          deleteWidgets:function(indexPane){
+              this.panes[indexPane].deleteWidgets();
+          },
+          setEditing : function(editing){
+              this.allowEdit=editing;
+          },
+          toggleEditing : function(){
+              this.allowEdit=!self.allowEdit;
+          }
+          
       };
-      
+
       return Dashboard;
   })
   
   
+  .factory('Plugin',function($log,$interval,plugins,PluginsType,PluginState){
+      function Plugin(settings,type,pluginType){
+          var self = this;
+          self.instance = undefined;
+          self.settings = {};
+          self.type = undefined;
+          self.pluginType=pluginType;
+          
+          function setType(type){
+            $log.log('try to set type to:'+type);
+            if(type == undefined)return;
+           
+            $log.log('Datasource.type change to:');$log.log(type);
+            self.disposeInstance();
+            if(plugins.has(type,pluginType) && _.isFunction(type.newInstance)){
+                $log.log('try instantiate');
+                function finishLoad()
+                    {
+                        type.newInstance(self.settings,  function(instance)
+                        {
+                           self.instance = instance;
+                           self.type = type;
+                          //  instance.updateNow();
+                          self.settings.state = PluginState.CREATED;
+                          $log.log(type.display_name +' was created');
+                          
+                          self.start();
+
+                        }, self.startCallback,self.updateCallback,self.stopCallback ,$interval);
+                    }
+                if(_.isArray(type.external_scripts) && type.external_scripts>0)
+                {
+                    head.js(type.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
+                }
+                else
+                {
+                    finishLoad();
+                }
+            } 
+          }
+          if (settings) {
+            this.setSettings(settings);
+          }
+          setType(type);
+      }
+      
+      Plugin.prototype = {
+        setSettings: function(settings) {
+            angular.extend(this.settings, settings);
+        },
+
+        serialize : function()
+        {
+            return {
+                name    : this.name,
+                type    : this.type,
+                settings: this.settings
+            };
+        },
+        deserialize : function(object)
+        {
+            this.settings=object.settings;
+            this.name=object.name;
+            this.type=object.type;
+        },
+      }
+      
+      return Plugin;
+  })
+  
   /** DatasourceModel */
-  .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,datasourcePlugins,PluginState,_){
+  .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,plugins,PluginsType,PluginState,_){
     function Datasource(settings,type) {
         var self = this;
         
@@ -729,7 +942,7 @@
             type=datasource;
             $log.log('Datasource.type change to:');$log.log(datasource);
             self.disposeInstance();
-            if(   datasourcePlugins.has(datasource) && _.isFunction(datasource.newInstance)){
+            if(   plugins.has(datasource,PluginsType.DATASOURCE) && _.isFunction(datasource.newInstance)){
                 $log.log('try instantiate');
                 var datasourceType =datasource;
                 function finishLoad()
@@ -820,7 +1033,6 @@
         }
         
         if (settings) {
-            
             this.setSettings(settings);
         }
         setType(type);
@@ -832,17 +1044,7 @@
         setSettings: function(settings) {
             angular.extend(this.settings, settings);
         },
-        /*updateCallback:function(newData){
-            //theFreeboardModel.processDatasourceUpdate(self, newData);
-            
-            $log.log(newData);console.dir(this);
-            this.latestData=newData;
 
-            var now = new Date();
-            this.last_updated=now.toLocaleTimeString();
-            $rootScope.$broadcast('DATASOURCE.UPDATE',{object:this,data:newData});
-           // $rootScope.$digest();
-        },*/
         serialize : function()
         {
             return {

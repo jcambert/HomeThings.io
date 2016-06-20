@@ -2,13 +2,13 @@
 
 angular.module('homeThingsIo')
 .config(
-    function(widgetPluginsProvider){
+    function(pluginsProvider,PluginsType){
         console.log('config from widget');
-        widgetPluginsProvider.add(textWidget);
-        widgetPluginsProvider.add(gaugeWidget);
+        pluginsProvider.add(textWidget,PluginsType.WIDGET);
+        pluginsProvider.add(gaugeWidget,PluginsType.WIDGET);
     })  
 ;
-var TextWidget = function (settings,$templateCache) {
+var TextWidget = function (settings) {
 
     
 

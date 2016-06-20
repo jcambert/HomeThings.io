@@ -1,17 +1,18 @@
 <div class="">
   <dashboard-ui>
-     
-      <dashboard-content > 
           <div class ="row"> 
-              <div class="col-md-12">
-                   <dashboard-header class="slide"  ng-show="dashboard.allowEdit"></dashboard-header>
+              <div class="col-md-12" ng-show="dashboard.allowEdit">
+                   <dashboard-header class="slide"  ></dashboard-header>
               </div>
-              <div class="col-md-offset-5 col-md-1">
-                    <dashboard-toggle-header data-command="datasource" data-icon="database"></dashboard-toggle-header>
+              <div class="col-md-offset-4 col-md-1"  ng-hide="dashboard.allowEdit">
+                    <dashboard-pane data-command="inputs" data-icon="tachometer"></dashboard-pane>
                </div>
-               <div class="col-md-1">
-                   <dashboard-toggle-header data-command="command" data-icon="cogs"></dashboard-toggle-header>
+               <div class="col-md-1" ng-hide="dashboard.allowEdit">
+                   <dashboard-pane data-command="outputs" data-icon="play"></dashboard-pane>
               </div>
+              <div class="col-md-offset-4 col-md-1" ng-hide="dashboard.allowEdit">
+                    <dashboard-settings></dashboard-settings>
+               </div>
               <div class="col-md-12">
                 <div gridster class="grid-stack grid1" options="options" >
                     <ul>
@@ -22,7 +23,5 @@
                 </div>
              </div>
           </div>
-         
-      </dashboard-content>
   </dashboard-ui>
 </div>

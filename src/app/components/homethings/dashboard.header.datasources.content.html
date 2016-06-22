@@ -1,0 +1,63 @@
+<!--<h2 class="title">DATASOURCES</h2>
+
+<div class="datasource-list-container">
+    <table class="table table-condensed sub-table" id="datasources-list">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Last Updated</th>
+            <th>&nbsp;</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="datasource in datasources track by $index">{{datasource}}
+            <td>
+                <span class="text-button datasource-name" ng-click="modifyDatasource(datasource.settings.name)" uib-tooltip="{{'Modify ' + datasource.settings.name}}" >{{datasource.settings.name}}</span>
+            </td>
+            <td>{{datasource.last_updated}}</td>
+            <td>
+                <ul class="board-toolbar">
+                    <li ng-click="stopDatasourceData(datasource.settings.name)" uib-tooltip="{{'Stop ' + datasource.settings.name }}" ng-if="datasource.settings.state == 3"><i class="fa fa-stop"></i></li>
+                    <li ng-click="startDatasourceData(datasource.settings.name)" uib-tooltip="{{'Start ' + datasource.settings.name }}" ng-if="datasource.settings.state == 0 || datasource.settings.state == 2 "><i class="fa fa-play"></i></li>
+                    <li ng-click="updateDatasourceData(datasource.settings.name)" uib-tooltip="{{'Refresh ' + datasource.settings.name }}" ng-if="datasource.settings.state == 3"><i class="fa fa-refresh"></i></li>
+                    <li ng-click="deleteDatasource(datasource.settings.name)" uib-tooltip="{{'Delete ' + datasource.settings.name }}"><i class="fa fa-trash-o"></i></li>
+                </ul>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<span class="text-button table-operation" ng-click="addDatasource()">ADD</span>
+
+-->
+
+<h2 class="title">DATASOURCES</h2>
+
+<div class="datasource-list-container">
+    <table class="table table-condensed sub-table" id="datasources-list">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Last Updated</th>
+            <th>&nbsp;</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="plugin in dashboard.plugins track by $index">
+            <td>
+                <span class="text-button datasource-name" ng-click="dashboard.modifyPlugin($index)" uib-tooltip="{{'Modify ' + plugin.settings.name}}" >{{plugin.settings.name}}</span>
+            </td>
+            <td>{{plugin.last_updated}}</td>
+            <td>
+                <ul class="board-toolbar">
+                    <li ng-click="stopDatasourceData(plugin.settings.name)" uib-tooltip="{{'Stop ' + plugin.settings.name }}" ng-if="plugin.settings.state == 3"><i class="fa fa-stop"></i></li>
+                    <li ng-click="startDatasourceData(plugin.settings.name)" uib-tooltip="{{'Start ' + plugin.settings.name }}" ng-if="plugin.settings.state == 0 || plugin.settings.state == 2 "><i class="fa fa-play"></i></li>
+                    <li ng-click="updateDatasourceData(plugin.settings.name)" uib-tooltip="{{'Refresh ' + plugin.settings.name }}" ng-if="plugin.settings.state == 3"><i class="fa fa-refresh"></i></li>
+                    <li ng-click="deleteDatasource(plugin.settings.name)" uib-tooltip="{{'Delete ' + plugin.settings.name }}"><i class="fa fa-trash-o"></i></li>
+                </ul>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<span class="text-button table-operation" ng-click="wantAddPlugin()" uib-tooltip="Add a source">ADD</span>

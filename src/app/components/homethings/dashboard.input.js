@@ -28,7 +28,7 @@ var mqtt={
     "display_name":"Paho MQTT Input",
     "description":"Paho MQTT input Subscriber",
     "external_scripts":[],
-   " settings":[
+    "settings":[
         {
             "name"         :   "topic",
             "display_name" :   "Topic",
@@ -41,8 +41,8 @@ var mqtt={
             "name "        :   "datasource",
             "display_name" :   "Source de donnée",
             "type"         :   "option",
-            "source_type"  :   "datasource",
-            "source_filter":  "paho_mqtt"   
+            "source_type"  :   "datasources",
+            "source_filter":   "paho_mqtt"   
         }
         
     ],

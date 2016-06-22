@@ -5,9 +5,9 @@
   .constant('_',_)
   .constant('PluginState',{CREATED:0,INSTANCIED:1,PAUSED:2,RUNNING:3})
   .constant('FormState',{ADD:0,MODIFY:1})
-  .constant('DashboardPanesIndex',{INPUTS:'inputs',OUTPUTS:'outputs'})
+  .constant('DashboardPanesIndex',{INPUTS:'inputs',OUTPUTS:'outputs',DATASOURCES:'datasources'})
   .constant('PluginsType',{DATASOURCE:0,WIDGET:1,INPUT:2,OUTPUT:3})
-  .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboard,Datasource,plugins,PluginsType,FormState,DashboardPanesIndex){
+  .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboards,Dashboard,Datasource,Plugin,plugins,PluginsType,FormState,DashboardPanesIndex){
       
       return{
           restrict:'E',
@@ -19,13 +19,13 @@
               var self=$scope;
               self.$storage = $localStorage.$default();
               
-              self.dashboards={};
-              self.dashboards[DashboardPanesIndex.INPUTS]=self.$storage.dashboardInputs || new Dashboard(DashboardPanesIndex.INPUTS,PluginsType.INPUT);
-              self.dashboards[DashboardPanesIndex.OUTPUTS]=self.$storage.dashboardOutputs ||  new Dashboard(DashboardPanesIndex.OUTPUTS,PluginsType.OUTPUT);
-              
-              self.dashboard = undefined;
-              
-              self.datasources =self.$storage.datasources || {};
+              self.dashboards=new Dashboards();
+              self.dashboards.create(DashboardPanesIndex.INPUTS,PluginsType.INPUT,self.$storage.dashboardInputs);
+              self.dashboards.create(DashboardPanesIndex.OUTPUTS,PluginsType.OUTPUT,self.$storage.dashboardOutputs);
+              self.dashboards.create(DashboardPanesIndex.DATASOURCES,PluginsType.DATASOURCE,self.$storage.dashboardDatasources);
+             
+              self.dashboard = self.dashboards.get(0);
+           
 
               self.showSettings = function(){
                   self.dashboard.allowEdit = true;
@@ -33,7 +33,7 @@
               self.changeDashboardTo = function(dashboardname){
                   $log.log(self.dashboards);
                   $log.log('want change dashboard to:'+dashboardname);
-                  self.dashboard=self.dashboards[dashboardname];
+                  self.dashboard=self.dashboards.setCurrent(dashboardname);
                   $log.log('Current dashboard is '+self.dashboard.name);
                  
               }
@@ -47,19 +47,22 @@
               }
               
               self.saveDashboard = function(mode){
-                  self.$storage.datasources = self.datasources;
+                 // self.$storage.datasources = self.datasources;
+                 self.dashboards.save();
               };
               
               self.wantAddPlugin = function(){
                   var modalInstance = $uibModal.open({
                     animation: true,
                     templateUrl: 'app/components/homethings/'+self.dashboard.name+'.modal.html',
-                    controller: self.dashboard.name + 'ModalController',
+                    //controller: self.dashboard.name + 'ModalController',
+                    controller: 'PluginsModalController',
                     size: 'lg',
                     resolve: {
                         options:function() {
                             return{
-                                mode:FormState.ADD
+                                mode:FormState.ADD,
+                                dashboards:self.dashboards
                                 }
                             }
                         }
@@ -72,11 +75,11 @@
               };
               
               //$log.log('datasources plugins:');$log.log(datasourcePlugins.all());
-              self.addDatasource = function(){
+              /*self.addDatasource = function(){
                  var modalInstance = $uibModal.open({
                     animation: true,
                     templateUrl: 'app/components/homethings/datasource.modal.html',
-                    controller: 'DatasourceModalController',
+                    controller: 'PluginsModalController',
                     size: 'lg',
                     resolve: {
                         options:function() {
@@ -97,7 +100,7 @@
                     $log.info('Modal dismissed at: ' + new Date());
                   });
 
-              };
+              };*/
               
               self.wantModifyPlugin = function(index){
                   var plugin = self.dashboard.getPlugin(index);
@@ -105,13 +108,15 @@
                   var modalInstance = $uibModal.open({
                     animation: true,
                     templateUrl: 'app/components/homethings/'+self.dashboard.name+'.modal.html',
-                    controller:  self.dashboard.name+'ModalController',
+                    //controller:  self.dashboard.name+'ModalController',
+                    controller:'PluginsModalController',
                     size: 'lg',
                     resolve: {
                         options:function() {
                             return{
                                 plugin: plugin,
-                                mode: FormState.MODIFY
+                                mode: FormState.MODIFY,
+                                dashboards:self.dashboards
                                 }
                             }
                         }
@@ -124,7 +129,7 @@
                         $log.info('Modal dismissed at: ' + new Date());
                     });
               }
-            self.modifyDatasource = function(name){
+            /*self.modifyDatasource = function(name){
                 var ds=self.datasources[name];
                 $log.log(ds);$log.log(name);
                 ds.edit(function(){
@@ -133,7 +138,7 @@
                     var modalInstance = $uibModal.open({
                         animation: true,
                         templateUrl: 'app/components/homethings/datasource.modal.html',
-                        controller: 'DatasourceModalController',
+                        controller: 'PluginsModalController',
                         size: 'lg',
                         resolve: {
                             options:function() {
@@ -159,7 +164,7 @@
                     
                     return deferred.promise;
                 });
-            };
+            };*/
             
             self.deleteDatasource = function(name){
                 self.datasources[name].dispose();
@@ -294,9 +299,10 @@
   })
   
    
-  .controller('DatasourceModalController',function($log,$scope,$uibModalInstance,plugins/*datasourcePlugins*/,PluginsType,FormState,PluginState,options){
+  .controller('PluginsModalController',function($log,$scope,$uibModalInstance,plugins,PluginsType,FormState,PluginState,options){
      var self=$scope;
-     self.datasources=plugins.all(PluginsType.DATASOURCE);
+     //self.dashboard = options.dashboard;
+     self.datasources=plugins.all(options.dashboards.getCurrent().pluginType);
      self.datasource = options.datasource;
      
      self.mode = options.mode;
@@ -337,6 +343,17 @@
         self.plugin.state=PluginState.CREATED;
     };
     
+    self.optionsSources = function(type,filter){
+        $log.log('options source');
+        $log.log(type);$log.log(filter);
+        if( type!=undefined && filter != undefined){
+            var plugins=options.dashboards.get(type).plugins();
+            $log.log('optionsSources plugins');$log.log(plugins);
+            return _.filter(plugins,function(plugin){return plugin.settings.type_name==filter;})
+        }
+        return '';
+        
+    };
     
     function createDefaultSettings(settings){
         $log.log('createDefaultSettings');
@@ -778,18 +795,52 @@
         };
   })
   
+  .factory('Dashboards',function(Dashboard){
+      function Dashboards(){
+          this.dashboards={};
+          this.current = undefined;
+      }
+      Dashboards.prototype={
+          save:function(){},
+          load:function(){},
+          create:function(name,type,storage){
+              var d=storage;
+              if(d == undefined){
+                d=new Dashboard(name,type);
+              }
+              this.add(name,d);
+              this.setCurrent(name);
+          },
+          add:function(name,dashboard){this.dashboards[name]=dashboard;},
+          get:function(nameOrIndex){
+              if(_.isString(nameOrIndex))
+                return this.dashboards[name];
+              if(_.isNumber(nameOrIndex))
+                return _.head(_.values(this.dashboards));
+              return undefined;
+          },
+          setCurrent:function(name){
+              this.current=this.dashboards[name];
+              return this.current;
+          },
+          getCurrent:function(){return this.current;}
+      }
+      return Dashboards;
+  })
+  
   /** FreeboardModel */
   .factory('Dashboard',function($log,Pane){
       function Dashboard(name,pluginType){
           $log.log('Create new Dashboard :'+name);
           var self=this;
           self.name=name;
-          self.pluginType;
+          self.pluginType=pluginType;
           self.version = 0;
           self.isEditing = false;
           self.allowEdit = false;
           self.panes = [];
           self.plugins = [];
+          
       }
       
       Dashboard.prototype={
@@ -797,10 +848,10 @@
               
           },
           addPlugin:function(plugin){
-              self.plugins.push(plugin);
+              this.plugins.push(plugin);
           },
           getPlugin:function(index){
-            return self.plugins[index];  
+            return this.plugins[index];  
           },
           serialize:function(){
               
@@ -811,9 +862,9 @@
           },
           clearDashboard : function(){
               _.forEach(self.panes,function(pane,index){
-                 self.deleteWidgets(index);
+                 this.deleteWidgets(index);
               });
-              self.panes.splice(0,self.panes.length);
+              this.panes.splice(0,this.panes.length);
            },
           loadDashboard : function(dashboardData, callback){
               
@@ -993,7 +1044,7 @@
       
       return Plugin;
   })
-   .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,plugins,PluginsType,PluginState,_,Plugin){
+  /* .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,plugins,PluginsType,PluginState,_,Plugin){
     function Datasource(settings,type,pluginType) {
         Plugin.call(this,settings,type,pluginType)
     }
@@ -1002,9 +1053,9 @@
     });
     
     return Datasource;
- })
+ })*/
   /** DatasourceModel */
-  /*
+  
   .factory('Datasource', function($log,$rootScope,$interval,propertyChanged,plugins,PluginsType,PluginState,_){
     function Datasource(settings,type) {
         var self = this;
@@ -1159,7 +1210,7 @@
         }
     };
     return Datasource;
-  })*/
+  })
   
   /** PaneModel */
   .factory('Pane',function($log){

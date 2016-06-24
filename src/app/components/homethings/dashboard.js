@@ -7,6 +7,13 @@
   .constant('FormState',{ADD:0,MODIFY:1})
   .constant('DashboardPanesIndex',{INPUTS:'inputs',OUTPUTS:'outputs',DATASOURCES:'datasources'})
   .constant('PluginsType',{DATASOURCE:0,WIDGET:1,INPUT:2,OUTPUT:3})
+  .config(function(DashboardsProvider,DashboardPanesIndex,PluginsType){
+      
+      DashboardsProvider.create(DashboardPanesIndex.INPUTS,PluginsType.INPUT);
+      DashboardsProvider.create(DashboardPanesIndex.OUTPUTS,PluginsType.OUTPUT);
+      DashboardsProvider.create(DashboardPanesIndex.DATASOURCES,PluginsType.DATASOURCE);
+      
+  })
   .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboards,Dashboard,Datasource,Plugin,plugins,PluginsType,FormState,DashboardPanesIndex){
       
       return{
@@ -14,19 +21,19 @@
           transclude:true,
           replace:true,
           template:'<div ng-transclude></div>',
-          controller: function($scope,$rootScope, $localStorage){
+          controller: function($scope,$rootScope){
               $log.log("Create Dashboard UI Controller");
               var self=$scope;
-              self.$storage = $localStorage.$default();
               
-              self.dashboards=new Dashboards();
+              
+              /*self.dashboards=new Dashboards();
               self.dashboards.create(DashboardPanesIndex.INPUTS,PluginsType.INPUT,self.$storage.dashboardInputs);
               self.dashboards.create(DashboardPanesIndex.OUTPUTS,PluginsType.OUTPUT,self.$storage.dashboardOutputs);
               self.dashboards.create(DashboardPanesIndex.DATASOURCES,PluginsType.DATASOURCE,self.$storage.dashboardDatasources);
              
-              self.dashboard = self.dashboards.get(0);
+              self.dashboard = self.dashboards.get(0);*/
            
-
+              self.dashboards = Dashboards.get(0);
               self.showSettings = function(){
                   self.dashboard.allowEdit = true;
               } 
@@ -61,8 +68,7 @@
                     resolve: {
                         options:function() {
                             return{
-                                mode:FormState.ADD,
-                                dashboards:self.dashboards
+                                mode:FormState.ADD
                                 }
                             }
                         }
@@ -115,8 +121,7 @@
                         options:function() {
                             return{
                                 plugin: plugin,
-                                mode: FormState.MODIFY,
-                                dashboards:self.dashboards
+                                mode: FormState.MODIFY
                                 }
                             }
                         }
@@ -299,10 +304,11 @@
   })
   
    
-  .controller('PluginsModalController',function($log,$scope,$uibModalInstance,plugins,PluginsType,FormState,PluginState,options){
+  .controller('PluginsModalController',function($log,$scope,$uibModalInstance,Dashboards,plugins,PluginsType,FormState,PluginState,options){
      var self=$scope;
      //self.dashboard = options.dashboard;
-     self.datasources=plugins.all(options.dashboards.getCurrent().pluginType);
+     self.pluginType=Dashboards.getCurrent().pluginType;
+     self.datasources=plugins.all(self.pluginType);
      self.datasource = options.datasource;
      
      self.mode = options.mode;
@@ -310,7 +316,7 @@
          item:{}
      };
      if(self.mode == FormState.MODIFY){
-        self.selected.item = plugins.get(self.datasource.settings.type,PluginsType.DATASOURCE);
+        self.selected.item = plugins.get(self.datasource.settings.type,self.pluginType);
         $log.log(self.datasource);
         $log.log(self.selected.item);
         self.plugin=angular.copy(self.datasource.settings);
@@ -726,7 +732,35 @@
       };
       
   })*/
-   
+   .service('propertyChanged',function($window,$log,_){
+      var self=this;
+      
+      self.setPropertyChanged = function(propertyName,callback){
+            function isFunctionDefined(functionName) {
+                var fn = $window["self.instance"+functionName];
+                if(typeof fn === 'function') {
+                   return fn;
+                }
+                return undefined;
+            }
+            if(_.isFunction(callback)){
+                watch(self,'name', function (prop, action, newvalue, oldvalue) {
+                    //$log.log( prop + ' changed from ' + oldvalue + ' to ' + newvalue);
+                    callback(oldvalue,newvalue);
+                });
+            }else if(_.isString(callback)){
+                watch(self,'name', function (prop, action, newvalue, oldvalue) {
+                   // $log.log(prop + ' changed from ' + oldvalue + ' to ' + newvalue);
+                    var fn=isFunctionDefined(callback);
+                    if(!_.isUndefined(fn) ){
+                        //$log.log('execute:'+callback);
+                        fn(oldvalue,newvalue);
+                    }
+                });
+            }
+        };
+  })
+  
   .provider('plugins',function(_){
       var self=this;
       self.plugins={};
@@ -766,66 +800,48 @@
           }
       }
   })
-  .service('propertyChanged',function($window,$log,_){
-      var self=this;
-      
-      self.setPropertyChanged = function(propertyName,callback){
-            function isFunctionDefined(functionName) {
-                var fn = $window["self.instance"+functionName];
-                if(typeof fn === 'function') {
-                   return fn;
-                }
-                return undefined;
-            }
-            if(_.isFunction(callback)){
-                watch(self,'name', function (prop, action, newvalue, oldvalue) {
-                    //$log.log( prop + ' changed from ' + oldvalue + ' to ' + newvalue);
-                    callback(oldvalue,newvalue);
-                });
-            }else if(_.isString(callback)){
-                watch(self,'name', function (prop, action, newvalue, oldvalue) {
-                   // $log.log(prop + ' changed from ' + oldvalue + ' to ' + newvalue);
-                    var fn=isFunctionDefined(callback);
-                    if(!_.isUndefined(fn) ){
-                        //$log.log('execute:'+callback);
-                        fn(oldvalue,newvalue);
-                    }
-                });
-            }
-        };
-  })
   
-  .factory('Dashboards',function(Dashboard){
-      function Dashboards(){
-          this.dashboards={};
-          this.current = undefined;
-      }
-      Dashboards.prototype={
-          save:function(){},
-          load:function(){},
-          create:function(name,type,storage){
-              var d=storage;
-              if(d == undefined){
-                d=new Dashboard(name,type);
+  
+  .provider('Dashboards',function(){
+      var self=this;
+      self.dashboards={};
+      self.current = undefined;
+      
+      //self.$storage =angular.injector(['ngStorage']).get('$localStorage').$default();
+      self.Dashboard = angular.injector().get('Dashboard');
+      return{
+          
+          $get:function(){
+              return{
+                    save:function($storage){
+                         $storage.dashboards = this.dashboards;
+                    },
+                    load:function($storage){
+                        this.dashboards = $storage.dashboards;
+                    },
+                    create:function(name,type){
+                        var d=new self.Dashboard(name,type);
+                        this.add(name,d);
+                        this.setCurrent(name);
+                    },
+                    add:function(name,dashboard){this.dashboards[name]=dashboard;},
+                    get:function(nameOrIndex){
+                        if(_.isString(nameOrIndex))
+                            return this.dashboards[name];
+                        if(_.isNumber(nameOrIndex))
+                            return _.head(_.values(this.dashboards));
+                        return undefined;
+                    },
+                    setCurrent:function(name){
+                        this.current=this.dashboards[name];
+                        return this.current;
+                    },
+                    getCurrent:function(){return this.current;}
               }
-              this.add(name,d);
-              this.setCurrent(name);
-          },
-          add:function(name,dashboard){this.dashboards[name]=dashboard;},
-          get:function(nameOrIndex){
-              if(_.isString(nameOrIndex))
-                return this.dashboards[name];
-              if(_.isNumber(nameOrIndex))
-                return _.head(_.values(this.dashboards));
-              return undefined;
-          },
-          setCurrent:function(name){
-              this.current=this.dashboards[name];
-              return this.current;
-          },
-          getCurrent:function(){return this.current;}
+          }
       }
-      return Dashboards;
+     
+     
   })
   
   /** FreeboardModel */

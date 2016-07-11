@@ -9,9 +9,9 @@
   .constant('PluginsType',{DATASOURCE:0,WIDGET:1,INPUT:2,OUTPUT:3})
   .config(function(DashboardsProvider,DashboardPanesIndex,PluginsType){
       
-      DashboardsProvider.create(DashboardPanesIndex.INPUTS,PluginsType.INPUT);
-      DashboardsProvider.create(DashboardPanesIndex.OUTPUTS,PluginsType.OUTPUT);
-      DashboardsProvider.create(DashboardPanesIndex.DATASOURCES,PluginsType.DATASOURCE);
+      DashboardsProvider.add(DashboardPanesIndex.INPUTS,PluginsType.INPUT);
+      DashboardsProvider.add(DashboardPanesIndex.OUTPUTS,PluginsType.OUTPUT);
+      DashboardsProvider.add(DashboardPanesIndex.DATASOURCES,PluginsType.DATASOURCE);
       
   })
   .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboards,Dashboard,Datasource,Plugin,plugins,PluginsType,FormState,DashboardPanesIndex){
@@ -32,15 +32,16 @@
               self.dashboards.create(DashboardPanesIndex.DATASOURCES,PluginsType.DATASOURCE,self.$storage.dashboardDatasources);
              
               self.dashboard = self.dashboards.get(0);*/
-           
-              self.dashboards = Dashboards.get(0);
+              Dashboards.create(Dashboard);
+              self.dashboard = Dashboards.getAndSetCurrent(0);
               self.showSettings = function(){
                   self.dashboard.allowEdit = true;
               } 
               self.changeDashboardTo = function(dashboardname){
                   $log.log(self.dashboards);
                   $log.log('want change dashboard to:'+dashboardname);
-                  self.dashboard=self.dashboards.setCurrent(dashboardname);
+                  //self.dashboard=self.dashboards.setCurrent(dashboardname);
+                  self.dashboard = Dashboards.getAndSetCurrent(dashboardname);
                   $log.log('Current dashboard is '+self.dashboard.name);
                  
               }
@@ -55,7 +56,7 @@
               
               self.saveDashboard = function(mode){
                  // self.$storage.datasources = self.datasources;
-                 self.dashboards.save();
+                 Dashboards.save();
               };
               
               self.wantAddPlugin = function(){
@@ -804,39 +805,60 @@
   
   .provider('Dashboards',function(){
       var self=this;
-      self.dashboards={};
-      self.current = undefined;
+      var dashboards={};
+     
       
       //self.$storage =angular.injector(['ngStorage']).get('$localStorage').$default();
-      self.Dashboard = angular.injector().get('Dashboard');
+      //self.Dashboard = angular.injector().get('Dashboard');
       return{
           
+          add:function(name,type){
+              dashboards[name]=type;
+              console.dir(dashboards);
+          },
           $get:function(){
+              var instances={};
+               var current = undefined;
               return{
                     save:function($storage){
-                         $storage.dashboards = this.dashboards;
+                         $storage.dashboards = dashboards;
                     },
                     load:function($storage){
-                        this.dashboards = $storage.dashboards;
+                        dashboards = $storage.dashboards;
                     },
-                    create:function(name,type){
+                    create:function(Dashboard){
+                        angular.forEach(dashboards,function(type,name){
+                           //if(!(name in instances)){
+                               instances[name]=new Dashboard(name,type);
+                           //}
+                            
+                        });
+                    },
+                   /* create:function(name,type){
                         var d=new self.Dashboard(name,type);
                         this.add(name,d);
                         this.setCurrent(name);
-                    },
-                    add:function(name,dashboard){this.dashboards[name]=dashboard;},
+                    },*/
+                   // add:function(name,dashboard){this.dashboards[name]=dashboard;},
+                   getAndSetCurrent:function(nameOrIndex){
+                     var result=this.get(nameOrIndex);
+                     if(result != undefined)
+                        this.setCurrent(result.name);  
+                     return result;
+                   },
                     get:function(nameOrIndex){
+                        console.dir(instances);
                         if(_.isString(nameOrIndex))
-                            return this.dashboards[name];
+                            return instances[nameOrIndex];
                         if(_.isNumber(nameOrIndex))
-                            return _.head(_.values(this.dashboards));
+                            return _.head(_.values(instances));
                         return undefined;
                     },
                     setCurrent:function(name){
-                        this.current=this.dashboards[name];
-                        return this.current;
+                        current=instances[name];
+                        return current;
                     },
-                    getCurrent:function(){return this.current;}
+                    getCurrent:function(){return current;}
               }
           }
       }

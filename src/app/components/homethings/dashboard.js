@@ -14,7 +14,14 @@
       DashboardsProvider.add(DashboardPanesIndex.DATASOURCES,PluginsType.DATASOURCE);
       
   })
-  .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboards,Dashboard,Datasource,Plugin,plugins,PluginsType,FormState,DashboardPanesIndex){
+  
+  /*.service('dashboardManager',function($log,Dashboards,Dashboard){
+      var self = this;
+      Dashboards.create(Dashboard);
+      
+      
+  })*/
+  .directive('dashboardUi',function($log, $uibModal,$animate,$q,Dashboards,Dashboard,Widget,Datasource,Plugin,plugins,PluginsType,FormState,DashboardPanesIndex){
       
       return{
           restrict:'E',
@@ -26,13 +33,8 @@
               var self=$scope;
               
               
-              /*self.dashboards=new Dashboards();
-              self.dashboards.create(DashboardPanesIndex.INPUTS,PluginsType.INPUT,self.$storage.dashboardInputs);
-              self.dashboards.create(DashboardPanesIndex.OUTPUTS,PluginsType.OUTPUT,self.$storage.dashboardOutputs);
-              self.dashboards.create(DashboardPanesIndex.DATASOURCES,PluginsType.DATASOURCE,self.$storage.dashboardDatasources);
-             
-              self.dashboard = self.dashboards.get(0);*/
               Dashboards.create(Dashboard);
+              Dashboards.linkToScope(self);
               self.dashboard = Dashboards.getAndSetCurrent(0);
               self.showSettings = function(){
                   self.dashboard.allowEdit = true;
@@ -40,7 +42,6 @@
               self.changeDashboardTo = function(dashboardname){
                   $log.log(self.dashboards);
                   $log.log('want change dashboard to:'+dashboardname);
-                  //self.dashboard=self.dashboards.setCurrent(dashboardname);
                   self.dashboard = Dashboards.getAndSetCurrent(dashboardname);
                   $log.log('Current dashboard is '+self.dashboard.name);
                  
@@ -55,7 +56,6 @@
               }
               
               self.saveDashboard = function(mode){
-                 // self.$storage.datasources = self.datasources;
                  Dashboards.save();
               };
               
@@ -483,12 +483,15 @@
       return{
           restrict:'E',
           replace:true,
-         
+          /*scope:{
+              changeDashboardTo:'&'
+          },*/
           template:'<div  class="toggle-header"><i class="fa" aria-hidden="true"></i></div>',
           link:function($scope,element,attrs){
               $log.log('Header toggler:');$log.log(attrs.command);
              angular.element(element).click(function(e){
                   e.preventDefault();
+                  console.dir($scope);
                   $scope.changeDashboardTo(attrs.command);
                   $scope.$apply();
               });
@@ -858,7 +861,12 @@
                         current=instances[name];
                         return current;
                     },
-                    getCurrent:function(){return current;}
+                    getCurrent:function(){return current;},
+                    linkToScope:function(scope){
+                        angular.forEach(instances,function(dashboard,name){
+                            scope[name]=dashboard.plugins;
+                        });
+                    }
               }
           }
       }
@@ -1320,7 +1328,7 @@
   })
   
   /**WidgetModel */
-  .factory('Widget',function($log,$templateCache,widgetPlugins){
+  .factory('Widget',function($log,$templateCache,plugins/*widgetPlugins*/,PluginsType){
       function Widget(settings,type){
           var self=this;
           self.datasourceRefreshNotifications={};
@@ -1332,12 +1340,13 @@
           self.shouldRender=false;
           self.instance=undefined;
           
-          function setType(type){
+          function setType(widget){
               $log.log('Widget set type to ');$log.log(type);
               if(type == undefined) return;
               self.disposeInstance();
-              $log.log('widget set type');$log.log(widgetPlugins.has(type));$log.log(_.isFunction(type.newInstance));
-              if ( widgetPlugins.has(type) && _.isFunction(type.newInstance)) {
+             // $log.log('widget set type');$log.log(widgetPlugins.has(type));$log.log(_.isFunction(type.newInstance));
+              //if ( widgetPlugins.has(type) && _.isFunction(type.newInstance)) {
+              if(   plugins.has(widget,PluginsType.WIDGET) && _.isFunction(widget.newInstance)){
                  $log.log('toto');
                
 

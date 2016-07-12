@@ -5,7 +5,7 @@
                    <dashboard-header class="slide"  ></dashboard-header>
               </div>
               <div class="col-md-offset-4 col-md-1"  ng-hide="dashboard.allowEdit">
-                    <dashboard-pane data-command="inputs" data-icon="tachometer"></dashboard-pane>
+                    <dashboard-pane data-command="inputs" data-icon="tachometer" ></dashboard-pane>
                </div>
                <div class="col-md-1" ng-hide="dashboard.allowEdit">
                    <dashboard-pane data-command="outputs" data-icon="play"></dashboard-pane>
@@ -19,7 +19,7 @@
               <div class="col-md-12">
                 <div gridster class="grid-stack grid1" options="options" >
                     <ul>
-                        <li gridster-item ng-repeat="pane in panes" class="grid-stack-item" row="w.settings.x" col="pane.settings.y" size-x="pane.settings.width" size-y="pane.settings.height" >
+                        <li gridster-item ng-repeat="pane in dashboard.panes" class="grid-stack-item" row="w.settings.x" col="pane.settings.y" size-x="pane.settings.width" size-y="pane.settings.height" >
                             <pane pane-resize>
                         </li>
                     </ul>

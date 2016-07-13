@@ -43,9 +43,9 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-repeat="plugin in dashboard.plugins track by $index">
+        <tr ng-repeat="(name,plugin) in dashboard.plugins track by $index">
             <td>
-                <span class="text-button datasource-name" ng-click="dashboard.modifyPlugin($index)" uib-tooltip="{{'Modify ' + plugin.settings.name}}" >{{plugin.settings.name}}</span>
+                <span class="text-button datasource-name" ng-click="wantModifyPlugin($index)" uib-tooltip="{{'Modify ' + plugin.settings.name}}" >{{plugin.settings.name}}</span>
             </td>
             <td>{{plugin.last_updated}}</td>
             <td>

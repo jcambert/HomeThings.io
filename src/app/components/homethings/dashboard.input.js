@@ -32,7 +32,7 @@ var mqtt={
         {
             "name"         :   "topic",
             "display_name" :   "Topic",
-            "type "        :   "text",
+            "type"         :   "text",
             "description"  :   "The topic to subscribe to",
             "default"      :   "",
             "required"     :   true

@@ -75,7 +75,7 @@
                         }
                     });
                     modalInstance.result.then(function (result) {
-                        self.dashboard.addPlugin(new Plugin(result.plugin,result.type,self.dashboard.pluginType));
+                        self.dashboard.addPlugin(result.plugin.name, new Plugin(result.plugin,result.type,self.dashboard.pluginType));
                     }, function () {
                         $log.info('Modal dismissed at: ' + new Date());
                     });
@@ -310,17 +310,17 @@
      //self.dashboard = options.dashboard;
      self.pluginType=Dashboards.getCurrent().pluginType;
      self.datasources=plugins.all(self.pluginType);
-     self.datasource = options.datasource;
+     self.plugin = options.plugin;
      
      self.mode = options.mode;
      self.selected={
          item:{}
      };
      if(self.mode == FormState.MODIFY){
-        self.selected.item = plugins.get(self.datasource.settings.type,self.pluginType);
-        $log.log(self.datasource);
+        self.selected.item = plugins.get(self.plugin.settings.type,self.pluginType);
+        $log.log(self.plugin);
         $log.log(self.selected.item);
-        self.plugin=angular.copy(self.datasource.settings);
+        self.plugin=angular.copy(self.plugin.settings);
      }
      
      self.ok = function () {
@@ -351,12 +351,17 @@
     };
     
     self.optionsSources = function(type,filter){
-        $log.log('options source');
-        $log.log(type);$log.log(filter);
+        //$log.log('options source');
+        //$log.log(type);$log.log(filter);
         if( type!=undefined && filter != undefined){
-            var plugins=options.dashboards.get(type).plugins();
-            $log.log('optionsSources plugins');$log.log(plugins);
-            return _.filter(plugins,function(plugin){return plugin.settings.type_name==filter;})
+            var plugins=Dashboards.get(type).getPlugins();
+            //$log.log('optionsSources plugins');$log.log(plugins);
+            var result= _.filter(plugins,function(plugin){
+                //console.log(plugin);
+                return plugin.settings.type==filter;
+            });
+            console.log(result);
+            return result;
         }
         return '';
         
@@ -850,7 +855,7 @@
                      return result;
                    },
                     get:function(nameOrIndex){
-                        console.dir(instances);
+                        //console.dir(instances);
                         if(_.isString(nameOrIndex))
                             return instances[nameOrIndex];
                         if(_.isNumber(nameOrIndex))
@@ -885,7 +890,7 @@
           self.isEditing = false;
           self.allowEdit = false;
           self.panes = [];
-          self.plugins = [];
+          self.plugins = {};
           
       }
       
@@ -893,16 +898,23 @@
           processDatasourceUpdate:function(datasource,newData){
               
           },
-          addPlugin:function(plugin){
-              this.plugins.push(plugin);
+          addPlugin:function(name,plugin){
+              //this.plugins.push(plugin);
+              this.plugins[name]=plugin;
           },
-          getPlugin:function(index){
-            return this.plugins[index];  
+          getPlugin:function(nameOrIndex){
+              if(_.isString(nameOrIndex))
+                    return this.plugins[nameOrIndex];
+                if(_.isNumber(nameOrIndex))
+                    return _.head(_.values(this.plugins));
+                return undefined;
+          },
+          getPlugins:function(){
+              return _.values(this.plugins);
           },
           serialize:function(){
               
           },
-          
           deserialize : function(object, finishedCallback){
               
           },

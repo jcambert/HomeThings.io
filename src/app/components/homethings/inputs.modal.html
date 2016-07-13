@@ -1,26 +1,25 @@
 
     <div class="modal-header">
-        <h3 class="modal-title">Datasource</h3>
+        <h3 class="modal-title">Input</h3>
     </div>
     <div class="modal-body">
         <form class="form-horizontal" name="dsForm" novalidate>
             <div class="form-group">
-                <label for="datasourceType" class="col-sm-2 control-label">Datasource Type</label>
+                <label for="datasourceType" class="col-sm-2 control-label">Input Type</label>
                 <datasource-type-select id="datasourceType" ng-change="createPlugin()" ng-if="mode == 0"> </datasource-type-select>
                 <label ng-if="mode == 1">{{selected.item.display_name}}</label>   
             </div>
             <div class="form-group" ng-if="selected.item.display_name">
                 <label for="name" class="col-sm-2 control-label" >Name</label>
-                <input type="text" ng-model="plugin.name"  required ng-minlength="5" ng-maxlength="20" placeholder="Name of the datasource"/>  
+                <input name="name" type="text" ng-model="plugin.name"  required ng-minlength="5" ng-maxlength="20" placeholder="Name of the datasource"/>
+                <p ng-show="dsForm.name.$invalid && !dsForm.name.$pristine" class="help-block">You name is required.</p>  
             </div>
-            <div class="form-group" ng-repeat="setting in selected.item.settings" ng-if="selected.item.display_name">
-                 {{optionsSources(setting.source_type,setting.source_filter)}}
-               {{setting}}
+            <div class="form-group" ng-repeat="setting in selected.item.settings track by $index" ng-if="selected.item.display_name">
                 <label for="{{setting.name}}" class="col-sm-2 control-label">{{setting.display_name}}</label>
-                <input type="number" ng-model="plugin[setting.name]" ng-if="setting.type=='integer'" min="{{setting.min || 0}}" max="{{setting.max || 999999}}" ng-pattern="/^[0-9]{1,7}$/" required id="{{setting.name}}" placeholder="{{setting.placeholder ||''}}"/>
-                <input type="text" ng-model="plugin[setting.name]" ng-if="setting.type=='text'" ng-required="{{setting.required}}" id="{{setting.name}}" placeholder="{{setting.placeholder ||''}}"/>
-                <select ng-model="plugin[setting.name]" ng-options="option.value as option.name for option in setting.options" ng-selected="setting.default == option.value"  ng-if="setting.type=='option'" required></select>
-                <input bs-switch ng-model="plugin[setting.name]" type="checkbox" ng-if="setting.type=='boolean'"  switch-on-text="YES"   switch-off-text="NO"/>
+                <input type="number" name="plugin[setting.name]" ng-model="plugin[setting.name]" ng-if="setting.type=='integer'" min="{{setting.min || 0}}" max="{{setting.max || 999999}}" ng-pattern="/^[0-9]{1,7}$/" required id="{{setting.name}}" placeholder="{{setting.placeholder ||''}}"/>
+                <input type="text" name="plugin[setting.name]"  ng-model="plugin[setting.name]" ng-if="setting.type=='text'" ng-required="{{setting.required}}" id="{{setting.name}}" placeholder="{{setting.placeholder ||''}}"/>
+                <select ng-model="plugin[setting.name]"  name="plugin[setting.name]" ng-options="option.setting.name as option.settings.name for option in optionsSources(setting.source_type,setting.source_filter)" ng-selected="setting.default == option.value"  ng-if="setting.type=='option'" required></select>
+                <input bs-switch ng-model="plugin[setting.name]"  name="plugin[setting.name]"  type="checkbox" ng-if="setting.type=='boolean'"  switch-on-text="YES"   switch-off-text="NO"/>
                 <div class="input-suffix" ng-if="setting.suffix">{{setting.suffix}}</div>
                 <div id="setting-value-container-headers" class="form-value" ng-if="setting.type=='array'">
                     <div class="form-table-value-subtable">
@@ -48,12 +47,13 @@
                     <div class="table-operation text-button" ng-click="addRow(setting.name)">ADD</div>
                 </div>
                 <div class="setting-description col-md-offset-3" ng-if="setting.description">{{setting.description}}</div>
+                <p ng-show="dsForm[setting.name].$invalid && !dsForm[setting.name].$pristine" class="help-block">You name is required.</p>
             </div>
         </form>
        <div>Selected: <b>{{ selected.item.display_name }}</b></div>
         <div>Plugin: {{plugin}}</div>
     </div>
     <div class="modal-footer">
-        <button class="btn btn-primary" type="button" ng-click="ok()" ng-disabled="dsForm.$invalid">OK</button>
+        <button class="btn btn-primary" type="button" ng-click="ok()" >OK</button>
         <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
     </div>
